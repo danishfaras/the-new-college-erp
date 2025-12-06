@@ -46,11 +46,11 @@ export default function StaffMyAttendancePage() {
 
   // Get attendance records for display
   const attendanceRecords = Object.entries(myAttendance)
-    .map(([date, stat]) => ({ date, status: stat }))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .map(([date, stat]: [string, string]) => ({ date, status: stat }))
+    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 30) // Last 30 records
 
-  const thisMonthRecords = attendanceRecords.filter((r) => {
+  const thisMonthRecords = attendanceRecords.filter((r: any) => {
     const recordDate = new Date(r.date)
     const now = new Date()
     return recordDate.getMonth() === now.getMonth() && recordDate.getFullYear() === now.getFullYear()
@@ -58,10 +58,10 @@ export default function StaffMyAttendancePage() {
 
   const thisMonthStats = {
     total: thisMonthRecords.length,
-    present: thisMonthRecords.filter((r) => r.status === 'present' || r.status === 'late').length,
-    absent: thisMonthRecords.filter((r) => r.status === 'absent').length,
+    present: thisMonthRecords.filter((r: any) => r.status === 'present' || r.status === 'late').length,
+    absent: thisMonthRecords.filter((r: any) => r.status === 'absent').length,
     percentage: thisMonthRecords.length > 0
-      ? ((thisMonthRecords.filter((r) => r.status === 'present' || r.status === 'late').length / thisMonthRecords.length) * 100).toFixed(1)
+      ? ((thisMonthRecords.filter((r: any) => r.status === 'present' || r.status === 'late').length / thisMonthRecords.length) * 100).toFixed(1)
       : '0',
   }
 

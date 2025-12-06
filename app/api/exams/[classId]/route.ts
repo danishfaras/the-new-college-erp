@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { classId: string } }
+  { params }: { params: Promise<{ classId: string }> }
 ) {
   try {
     const session = await auth()
@@ -16,7 +16,7 @@ export async function GET(
       )
     }
 
-    const classId = params.classId
+    const { classId } = await params
     const { searchParams } = new URL(request.url)
     const upcoming = searchParams.get('upcoming') === 'true'
 

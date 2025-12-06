@@ -15,7 +15,7 @@ const updateUserSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -27,7 +27,7 @@ export async function GET(
       )
     }
 
-    const userId = params.id
+    const { id: userId } = await params
 
     // Users can only view their own profile unless they're admin/staff
     if (userId !== session.user.id && session.user.role !== 'admin' && session.user.role !== 'staff') {
@@ -69,7 +69,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -81,7 +81,7 @@ export async function PUT(
       )
     }
 
-    const userId = params.id
+    const { id: userId } = await params
 
     // Users can only update their own profile unless they're admin
     if (userId !== session.user.id && session.user.role !== 'admin') {

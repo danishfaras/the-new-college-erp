@@ -5,7 +5,7 @@ import { createAuditLog } from '@/lib/utils/audit'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -17,7 +17,7 @@ export async function POST(
       )
     }
 
-    const feeId = params.id
+    const { id: feeId } = await params
 
     // Find fee
     const fee = await prisma.fee.findUnique({

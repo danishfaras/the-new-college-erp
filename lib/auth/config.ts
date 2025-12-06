@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { verifyPassword } from '@/lib/utils/password'
-import { SessionUser } from '@/types'
+import { SessionUser, UserRole } from '@/types'
 
 // Lazy load Prisma to avoid Edge runtime issues
 const getPrisma = async () => {
@@ -46,7 +46,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          role: user.role as UserRole,
           approved: user.approved,
         }
       },
@@ -59,7 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = (user as SessionUser).role
+        token.role = (user as SessionUser).role as UserRole
         token.approved = (user as SessionUser).approved
       }
       return token
@@ -67,7 +67,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         ;(session.user as SessionUser).id = token.id as string
-        ;(session.user as SessionUser).role = token.role as string
+        ;(session.user as SessionUser).role = token.role as UserRole
         ;(session.user as SessionUser).approved = token.approved as boolean
       }
       return session

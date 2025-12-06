@@ -28,30 +28,40 @@ export async function GET(request: NextRequest) {
 
     const classes = await prisma.class.findMany({
       where,
-      _count: {
-        select: {
-          timetables: true,
-          exams: true,
-        },
-      },
       orderBy: { createdAt: 'desc' },
     })
 
-    // Fetch staff details separately since MongoDB doesn't support many-to-many relations
+    // Fetch staff details and counts separately since MongoDB doesn't support _count with select
     const classesWithStaff = await Promise.all(
       classes.map(async (cls) => {
-        if (cls.staffIds.length > 0) {
-          const staff = await prisma.user.findMany({
-            where: { id: { in: cls.staffIds } },
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          })
-          return { ...cls, staff }
+        // Fetch staff
+        const staff = cls.staffIds.length > 0
+          ? await prisma.user.findMany({
+              where: { id: { in: cls.staffIds } },
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            })
+          : []
+
+        // Manually count related records
+        const [timetableCount, examCount, attendanceCount] = await Promise.all([
+          prisma.timetable.count({ where: { classId: cls.id } }),
+          prisma.exam.count({ where: { classId: cls.id } }),
+          prisma.attendance.count({ where: { classId: cls.id } }),
+        ])
+
+        return {
+          ...cls,
+          staff,
+          _count: {
+            timetables: timetableCount,
+            exams: examCount,
+            attendance: attendanceCount,
+          },
         }
-        return { ...cls, staff: [] }
       })
     )
 

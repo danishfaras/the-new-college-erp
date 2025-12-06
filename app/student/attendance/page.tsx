@@ -57,8 +57,8 @@ export default function StudentAttendancePage() {
   const studentRecords = attendanceRecords.flatMap((att: any) => {
     const records = att.records as any[]
     return records
-      .filter((r) => r.studentId === session?.user.id)
-      .map((r) => ({
+      .filter((r: any) => r.studentId === session?.user.id)
+      .map((r: any) => ({
         date: att.date,
         status: r.status,
         note: r.note,

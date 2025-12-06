@@ -106,15 +106,15 @@ export default function StaffClassDetailPage() {
     const records = attendanceData?.attendance?.flatMap((att: any) => {
       const attRecords = att.records as any[]
       return attRecords
-        .filter((r) => r.studentId === studentId)
-        .map((r) => ({
+        .filter((r: any) => r.studentId === studentId)
+        .map((r: any) => ({
           date: att.date,
           status: r.status,
         }))
     }) || []
 
     const total = records.length
-    const present = records.filter((r) => r.status === 'present' || r.status === 'late').length
+    const present = records.filter((r: any) => r.status === 'present' || r.status === 'late').length
     const percentage = total > 0 ? (present / total) * 100 : 0
 
     return { total, present, absent: total - present, percentage }

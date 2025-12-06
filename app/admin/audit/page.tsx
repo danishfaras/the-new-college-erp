@@ -49,9 +49,9 @@ export default function AdminAuditPage() {
     )
   }) || []
 
-  const actionTypes = Array.from(
-    new Set(auditData?.logs?.map((log: any) => log.action) || [])
-  ).sort()
+  const actionTypes: string[] = Array.from(
+    new Set(auditData?.logs?.map((log: any) => log.action as string) || [])
+  ).sort() as string[]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">

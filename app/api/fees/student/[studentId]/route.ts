@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
     const session = await auth()
@@ -16,7 +16,7 @@ export async function GET(
       )
     }
 
-    const studentId = params.studentId
+    const { studentId } = await params
 
     // Students can only view their own fees, admins can view any
     if (session.user.role !== 'admin' && session.user.id !== studentId) {
@@ -31,8 +31,8 @@ export async function GET(
       orderBy: { dueDate: 'asc' },
     })
 
-    const total = fees.reduce((sum, fee) => sum + fee.amount, 0)
-    const paid = fees.filter((f) => f.paid).reduce((sum, fee) => sum + fee.amount, 0)
+    const total = fees.reduce((sum: number, fee: any) => sum + fee.amount, 0)
+    const paid = fees.filter((f: any) => f.paid).reduce((sum: number, fee: any) => sum + fee.amount, 0)
     const pending = total - paid
 
     return NextResponse.json({

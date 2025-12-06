@@ -7,7 +7,7 @@ import { emitTimetableUpdate } from '@/lib/socket'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { classId: string } }
+  { params }: { params: Promise<{ classId: string }> }
 ) {
   try {
     const session = await auth()
@@ -19,7 +19,7 @@ export async function GET(
       )
     }
 
-    const classId = params.classId
+    const { classId } = await params
 
     // Check if class exists
     const classData = await prisma.class.findUnique({
@@ -63,7 +63,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { classId: string } }
+  { params }: { params: Promise<{ classId: string }> }
 ) {
   try {
     const session = await auth()
@@ -75,7 +75,7 @@ export async function PUT(
       )
     }
 
-    const classId = params.classId
+    const { classId } = await params
 
     // Check if class exists and user has permission
     const classData = await prisma.class.findUnique({

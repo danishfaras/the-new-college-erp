@@ -6,7 +6,7 @@ import { createAuditLog } from '@/lib/utils/audit'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -18,7 +18,7 @@ export async function GET(
       )
     }
 
-    const classId = params.id
+    const { id: classId } = await params
 
     const classData = await prisma.class.findUnique({
       where: { id: classId },
@@ -30,13 +30,13 @@ export async function GET(
         exams: {
           orderBy: { date: 'asc' },
         },
-        _count: {
-          select: {
-            attendance: true,
-          },
-        },
       },
     })
+
+    // Manually count attendance since MongoDB doesn't support _count with select
+    const attendanceCount = classData
+      ? await prisma.attendance.count({ where: { classId: classData.id } })
+      : 0
 
     if (!classData) {
       return NextResponse.json(
@@ -71,7 +71,15 @@ export async function GET(
         })
       : []
 
-    return NextResponse.json({ class: { ...classData, staff } }, { status: 200 })
+    return NextResponse.json({
+      class: {
+        ...classData,
+        staff,
+        _count: {
+          attendance: attendanceCount,
+        },
+      },
+    }, { status: 200 })
   } catch (error) {
     console.error('Get class error:', error)
     return NextResponse.json(
@@ -83,7 +91,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -95,7 +103,7 @@ export async function PUT(
       )
     }
 
-    const classId = params.id
+    const { id: classId } = await params
 
     // Check if class exists and user has permission
     const existingClass = await prisma.class.findUnique({

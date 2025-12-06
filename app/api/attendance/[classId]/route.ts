@@ -7,7 +7,7 @@ import { emitAttendanceUpdate } from '@/lib/socket'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { classId: string } }
+  { params }: { params: Promise<{ classId: string }> }
 ) {
   try {
     const session = await auth()
@@ -19,7 +19,7 @@ export async function GET(
       )
     }
 
-    const classId = params.classId
+    const { classId } = await params
     const { searchParams } = new URL(request.url)
     const start = searchParams.get('start')
     const end = searchParams.get('end')
@@ -63,15 +63,15 @@ export async function GET(
       const studentRecords = attendance.flatMap((a) => {
         const records = a.records as any[]
         return records
-          .filter((r) => r.studentId === session.user.id)
-          .map((r) => ({
+          .filter((r: any) => r.studentId === session.user.id)
+          .map((r: any) => ({
             date: a.date,
             status: r.status,
           }))
       })
 
       const total = studentRecords.length
-      const present = studentRecords.filter((r) => r.status === 'present' || r.status === 'late').length
+      const present = studentRecords.filter((r: any) => r.status === 'present' || r.status === 'late').length
       const percentage = total > 0 ? (present / total) * 100 : 0
 
       return NextResponse.json({
@@ -97,7 +97,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { classId: string } }
+  { params }: { params: Promise<{ classId: string }> }
 ) {
   try {
     const session = await auth()
@@ -117,7 +117,7 @@ export async function POST(
       )
     }
 
-    const classId = params.classId
+    const { classId } = await params
 
     // Check if class exists and user has permission
     const classData = await prisma.class.findUnique({

@@ -312,7 +312,7 @@ export default function AdminClassesPage() {
                             if (e.target.checked) {
                               setFormData({ ...formData, staffIds: [...formData.staffIds, staff.id] })
                             } else {
-                              setFormData({ ...formData, staffIds: formData.staffIds.filter((id) => id !== staff.id) })
+                              setFormData({ ...formData, staffIds: formData.staffIds.filter((id: string) => id !== staff.id) })
                             }
                           }}
                           className="w-4 h-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500/50"
