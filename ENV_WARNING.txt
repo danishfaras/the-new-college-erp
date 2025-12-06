@@ -1,0 +1,11 @@
+
+⚠️  IMPORTANT: Your current .env file contains PostgreSQL settings.
+   Please create .env.local with MongoDB settings:
+
+   1. Run: npm run setup:env
+   OR
+   2. Manually: cp .env.example .env.local
+      Then edit .env.local with your MongoDB connection string
+
+   The .env file will be ignored - use .env.local for local development.
+

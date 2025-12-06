@@ -6,21 +6,53 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup:env": "bash scripts/setup-env.sh",
+    "prisma:generate": "bash scripts/fix-env.sh && dotenv -e .env.local -e .env -- prisma generate",
+    "prisma:push": "bash scripts/fix-env.sh && dotenv -e .env.local -e .env -- prisma db push",
+    "prisma:studio": "dotenv -e .env.local -e .env -- prisma studio",
+    "seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
+    "test": "jest",
+    "test:e2e": "playwright test"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.11.1",
+    "@prisma/client": "^6.19.0",
+    "@tanstack/react-query": "^5.90.12",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/nodemailer": "^7.0.4",
+    "bcryptjs": "^3.0.3",
     "next": "16.0.7",
+    "next-auth": "^5.0.0-beta.30",
+    "nodemailer": "^7.0.11",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.19.25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
+    "eslint-config-prettier": "^10.1.8",
+    "jest": "^30.2.0",
+    "prettier": "^3.7.4",
+    "prisma": "^6.19.0",
     "tailwindcss": "^4",
+    "ts-jest": "^29.4.6",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

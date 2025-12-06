@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @map("_id") @default(auto()) @db.ObjectId
+  email         String   @unique
+  name          String?
+  password      String?
+  role          String   // admin | staff | student | accounts
+  approved      Boolean  @default(false) // admin approval
+  createdAt     DateTime @default(now())
+  profile       Profile?
+  attendance    Attendance[] @relation("AttendanceTakenBy")
+  fees          Fee[]
+  auditLogs     AuditLog[] @relation("AuditActor")
+  notifications Notification[]
+}
+
+model Profile {
+  id         String @id @map("_id") @default(auto()) @db.ObjectId
+  userId     String @unique @db.ObjectId
+  user       User   @relation(fields: [userId], references: [id])
+  rollNo     String?
+  department String?
+  phone      String?
+  avatar     String?
+}
+
+model Class {
+  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  name        String   // e.g. "BSc CS 2nd Year"
+  code        String   @unique
+  department  String
+  staffIds    String[] @db.ObjectId
+  timetables  Timetable[]
+  exams       Exam[]
+  attendance  Attendance[]
+  createdAt   DateTime @default(now())
+}
+
+model Timetable {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  classId   String   @db.ObjectId
+  class     Class    @relation(fields: [classId], references: [id])
+  entries   Json     // array of { day, start, end, subject, staffId, location }
+  updatedBy String?  @db.ObjectId
+  updatedAt DateTime @updatedAt
+}
+
+model Exam {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  classId   String   @db.ObjectId
+  class     Class    @relation(fields: [classId], references: [id])
+  name      String
+  date      DateTime
+  startTime String
+  endTime   String
+  subjects  Json     // [{subject, code, duration}]
+  createdAt DateTime @default(now())
+}
+
+model Attendance {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  classId   String   @db.ObjectId
+  class     Class    @relation(fields: [classId], references: [id])
+  date      DateTime
+  records   Json     // [{studentId, status: "present"|"absent"|"late", note?}]
+  takenBy   String   @db.ObjectId
+  takenByUser User   @relation("AttendanceTakenBy", fields: [takenBy], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([classId, date])
+}
+
+model Fee {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  studentId String   @db.ObjectId
+  student   User     @relation(fields: [studentId], references: [id])
+  amount    Float
+  dueDate   DateTime
+  paid      Boolean  @default(false)
+  paidAt    DateTime?
+  invoiceId String?
+  createdAt DateTime @default(now())
+
+  @@index([studentId])
+}
+
+model AuditLog {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  action    String
+  actorId   String?  @db.ObjectId
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id])
+  targetId  String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  type      String?  // info | warning | success | error
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}
