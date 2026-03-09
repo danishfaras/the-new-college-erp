@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
         code: validatedData.code,
         department: validatedData.department,
         staffIds: validatedData.staffIds || [],
+        studentIds: validatedData.studentIds || [],
       },
     })
 

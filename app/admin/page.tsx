@@ -125,15 +125,15 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-slate-50">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
+          <h1 className="text-4xl font-bold text-slate-900 mb-2">
             Welcome back, {session?.user?.name || 'Admin'}
           </h1>
-          <p className="text-gray-400">Manage your college ERP system from one place</p>
+          <p className="text-slate-500">Manage your college ERP system from one place</p>
         </div>
 
         {/* Stats Grid */}
@@ -141,16 +141,16 @@ export default function AdminDashboard() {
           {statCards.map((stat, index) => (
             <div
               key={stat.title}
-              className="group relative backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20"
+              className="group relative bg-white rounded-lg border border-slate-200 shadow-sm p-6 hover:bg-slate-100 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient} shadow-lg`}>
-                  <div className="text-white">{stat.icon}</div>
+                <div className="p-3 rounded-lg bg-blue-100">
+                  <div className="text-blue-600">{stat.icon}</div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider">{stat.title}</p>
-                  <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">{stat.title}</p>
+                  <p className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -163,15 +163,13 @@ export default function AdminDashboard() {
                 </span>
                 <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
               </div>
-              {/* Animated gradient border */}
-              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r ${stat.gradient} opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-300 -z-10`}></div>
             </div>
           ))}
         </div>
 
         {/* Pending Approvals Card */}
-        <div className="backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 shadow-2xl mb-8 overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm shadow-2xl mb-8 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-amber-500/20 rounded-lg">
@@ -180,8 +178,8 @@ export default function AdminDashboard() {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Pending User Approvals</h2>
-                  <p className="text-sm text-gray-400">Review and approve new student registrations</p>
+                  <h2 className="text-xl font-bold text-slate-900">Pending User Approvals</h2>
+                  <p className="text-sm text-slate-500">Review and approve new student registrations</p>
                 </div>
               </div>
               <div className="px-4 py-2 bg-amber-500/20 rounded-full">
@@ -196,21 +194,21 @@ export default function AdminDashboard() {
                 {users.users.map((user: any) => (
                   <div
                     key={user.id}
-                    className="group backdrop-blur-sm bg-white/5 rounded-xl border border-white/10 p-4 hover:bg-white/10 transition-all duration-200 hover:border-white/20"
+                    className="group bg-slate-50 rounded-xl border border-slate-200 p-4 hover:bg-slate-100 transition-all duration-200 hover:border-slate-300"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg shadow-lg">
                           {user.name?.charAt(0).toUpperCase() || 'U'}
                         </div>
                         <div>
-                          <h3 className="text-white font-semibold">{user.name || 'No Name'}</h3>
-                          <p className="text-gray-400 text-sm">{user.email}</p>
+                          <h3 className="text-slate-900 font-semibold">{user.name || 'No Name'}</h3>
+                          <p className="text-slate-500 text-sm">{user.email}</p>
                           <div className="flex items-center space-x-2 mt-1">
                             <span className="px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
                               {user.role}
                             </span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-slate-500">
                               {new Date(user.createdAt).toLocaleDateString()}
                             </span>
                           </div>
@@ -219,7 +217,7 @@ export default function AdminDashboard() {
                       <button
                         onClick={() => handleApprove(user.id)}
                         disabled={approvingUserId === user.id}
-                        className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center space-x-2"
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                       >
                         {approvingUserId === user.id ? (
                           <>
@@ -249,8 +247,8 @@ export default function AdminDashboard() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <p className="text-gray-400 text-lg">All users have been approved</p>
-                <p className="text-gray-500 text-sm mt-2">No pending approvals at this time</p>
+                <p className="text-slate-500 text-lg">All users have been approved</p>
+                <p className="text-slate-500 text-sm mt-2">No pending approvals at this time</p>
               </div>
             )}
           </div>
@@ -307,14 +305,14 @@ export default function AdminDashboard() {
             <Link
               key={action.title}
               href={action.href}
-              className="group relative backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20 overflow-hidden"
+              className="group relative bg-white rounded-lg border border-slate-200 shadow-sm p-6 hover:bg-slate-100 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20 overflow-hidden"
             >
               <div className="relative z-10">
                 <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${action.gradient} shadow-lg mb-4 group-hover:scale-110 transition-transform duration-300`}>
                   <div className="text-white">{action.icon}</div>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2">{action.title}</h3>
-                <p className="text-gray-400 text-sm">{action.description}</p>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">{action.title}</h3>
+                <p className="text-slate-500 text-sm">{action.description}</p>
                 <div className="mt-4 flex items-center text-blue-400 text-sm font-medium group-hover:translate-x-2 transition-transform duration-300">
                   <span>Open</span>
                   <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

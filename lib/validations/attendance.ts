@@ -8,8 +8,8 @@ export const attendanceRecordSchema = z.object({
 })
 
 export const createAttendanceSchema = z.object({
-  classId: z.string().min(1, 'Class ID is required'),
-  date: z.string().datetime(),
+  // classId comes from URL params in the API
+  date: z.string().min(1, 'Date is required'), // YYYY-MM-DD or ISO datetime
   records: z.array(attendanceRecordSchema),
 })
 

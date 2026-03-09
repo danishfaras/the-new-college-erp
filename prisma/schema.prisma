@@ -38,6 +38,7 @@ model Class {
   code        String   @unique
   department  String
   staffIds    String[] @db.ObjectId
+  studentIds  String[] @db.ObjectId // assigned students
   timetables  Timetable[]
   exams       Exam[]
   attendance  Attendance[]

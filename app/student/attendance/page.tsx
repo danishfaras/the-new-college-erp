@@ -29,7 +29,8 @@ export default function StudentAttendancePage() {
     enabled: !!session?.user.id,
   })
 
-  const studentClass = classesData?.classes?.find((cls: any) => 
+  const studentClass = classesData?.classes?.find((cls: any) =>
+    (cls.studentIds && cls.studentIds.includes(session?.user?.id)) ||
     cls.department === profileData?.user?.profile?.department
   )
 
@@ -67,14 +68,14 @@ export default function StudentAttendancePage() {
   }).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-slate-50">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Attendance Records</h1>
-            <p className="text-gray-400">
+            <h1 className="text-4xl font-bold text-slate-900 mb-2">Attendance Records</h1>
+            <p className="text-slate-500">
               {studentClass ? `${studentClass.name} • ${studentClass.department}` : 'Your attendance history'}
             </p>
           </div>
@@ -106,10 +107,10 @@ export default function StudentAttendancePage() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="backdrop-blur-xl bg-white/5 rounded-xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-300"
+              className="bg-white rounded-lg border border-slate-200 shadow-sm p-6 hover:bg-slate-100 transition-all duration-300"
             >
-              <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{stat.label}</p>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
+              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -118,28 +119,28 @@ export default function StudentAttendancePage() {
         {isLoading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
-            <p className="mt-4 text-gray-400">Loading attendance...</p>
+            <p className="mt-4 text-slate-500">Loading attendance...</p>
           </div>
         ) : studentRecords.length > 0 ? (
-          <div className="backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-green-500/10 to-emerald-500/10">
-              <h2 className="text-xl font-bold text-white">Attendance History</h2>
-              <p className="text-sm text-gray-400 mt-1">Your attendance records for the last 6 months</p>
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+              <h2 className="text-xl font-bold text-slate-900">Attendance History</h2>
+              <p className="text-sm text-slate-500 mt-1">Your attendance records for the last 6 months</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Taken By</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Notes</th>
+                  <tr className="border-b border-slate-200">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Taken By</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notes</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/10">
+                <tbody className="divide-y divide-slate-200">
                   {studentRecords.map((record: any, index: number) => (
-                    <tr key={index} className="hover:bg-white/5 transition-colors duration-200">
-                      <td className="px-6 py-4 whitespace-nowrap text-white">
+                    <tr key={index} className="hover:bg-slate-50 transition-colors duration-200">
+                      <td className="px-6 py-4 whitespace-nowrap text-slate-900">
                         {new Date(record.date).toLocaleDateString('en-US', {
                           weekday: 'long',
                           year: 'numeric',
@@ -162,10 +163,10 @@ export default function StudentAttendancePage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-300 text-sm">
+                      <td className="px-6 py-4 whitespace-nowrap text-slate-600 text-sm">
                         {record.takenBy?.name || 'N/A'}
                       </td>
-                      <td className="px-6 py-4 text-gray-400 text-sm">
+                      <td className="px-6 py-4 text-slate-500 text-sm">
                         {record.note || '—'}
                       </td>
                     </tr>
@@ -175,14 +176,14 @@ export default function StudentAttendancePage() {
             </div>
           </div>
         ) : (
-          <div className="backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 shadow-2xl p-12 text-center">
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm shadow-2xl p-12 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-500/20 mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-gray-400 text-lg">No attendance records found</p>
-            <p className="text-gray-500 text-sm mt-2">Your attendance records will appear here once they're recorded</p>
+            <p className="text-slate-500 text-lg">No attendance records found</p>
+            <p className="text-slate-500 text-sm mt-2">Your attendance records will appear here once they're recorded</p>
           </div>
         )}
       </main>

@@ -142,11 +142,17 @@ export async function POST(
     const body = await request.json()
     const validatedData = createAttendanceSchema.parse(body)
 
+    // Normalize date to start of day (UTC) so YYYY-MM-DD or ISO both work
+    const dateStr = validatedData.date
+    const attendanceDate = dateStr.includes('T')
+      ? new Date(dateStr)
+      : new Date(dateStr + 'T00:00:00.000Z')
+
     // Check if attendance already exists for this date
     const existingAttendance = await prisma.attendance.findFirst({
       where: {
         classId,
-        date: new Date(validatedData.date),
+        date: attendanceDate,
       },
     })
 
@@ -160,7 +166,7 @@ export async function POST(
     const attendance = await prisma.attendance.create({
       data: {
         classId,
-        date: new Date(validatedData.date),
+        date: attendanceDate,
         records: validatedData.records as any,
         takenBy: session.user.id,
       },
