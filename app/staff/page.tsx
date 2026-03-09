@@ -4,9 +4,14 @@ import { useSession } from 'next-auth/react'
 import { useQuery } from '@tanstack/react-query'
 import { Header } from '@/components/layout/Header'
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 
 export default function StaffDashboard() {
   const { data: session } = useSession()
+  const [today, setToday] = useState('')
+  useEffect(() => {
+    setToday(new Date().toLocaleDateString('en-US', { weekday: 'long' }))
+  }, [])
 
   // Fetch classes assigned to this staff member
   const { data: classesData } = useQuery({
@@ -22,8 +27,7 @@ export default function StaffDashboard() {
     cls.staffIds?.includes(session?.user.id)
   ) || []
 
-  // Get today's classes and timetable
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+  // Get today's classes and timetable (today set in useEffect to avoid hydration mismatch)
   const todayClasses: any[] = []
 
   // Fetch timetables for all classes
@@ -41,8 +45,8 @@ export default function StaffDashboard() {
     enabled: myClasses.length > 0,
   })
 
-  // Find today's classes
-  if (timetablesData) {
+  // Find today's classes (only when today is set to avoid hydration mismatch)
+  if (today && timetablesData) {
     timetablesData.forEach((timetable: any) => {
       const todayEntries = (timetable.entries as any[]).filter((entry: any) =>
         entry.day?.toLowerCase() === today.toLowerCase()

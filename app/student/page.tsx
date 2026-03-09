@@ -4,9 +4,14 @@ import { useSession } from 'next-auth/react'
 import { useQuery } from '@tanstack/react-query'
 import { Header } from '@/components/layout/Header'
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 
 export default function StudentDashboard() {
   const { data: session } = useSession()
+  const [today, setToday] = useState('')
+  useEffect(() => {
+    setToday(new Date().toLocaleDateString('en-US', { weekday: 'long' }))
+  }, [])
 
   // Fetch student's fees
   const { data: fees } = useQuery({
@@ -88,10 +93,9 @@ export default function StudentDashboard() {
     enabled: !!studentClass?.id,
   })
 
-  // Get today's classes from timetable
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' })
-  const todayClasses = timetableData?.timetable?.entries
-    ? (timetableData.timetable.entries as any[]).filter((entry: any) => 
+  // Get today's classes from timetable (today set in useEffect to avoid hydration mismatch)
+  const todayClasses = today && timetableData?.timetable?.entries
+    ? (timetableData.timetable.entries as any[]).filter((entry: any) =>
         entry.day?.toLowerCase() === today.toLowerCase()
       )
     : []
