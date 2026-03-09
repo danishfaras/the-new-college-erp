@@ -54,13 +54,17 @@ export default function StudentAttendancePage() {
   const summary = attendanceData?.summary || {}
   const attendanceRecords = attendanceData?.attendance || []
 
-  // Get student's attendance records
+  // Get student's attendance records (one per period)
   const studentRecords = attendanceRecords.flatMap((att: any) => {
     const records = att.records as any[]
+    const periodLabel = att.subject
+      ? `${att.subject} (${att.startTime || ''}–${att.endTime || ''})`
+      : '—'
     return records
       .filter((r: any) => r.studentId === session?.user.id)
       .map((r: any) => ({
         date: att.date,
+        period: periodLabel,
         status: r.status,
         note: r.note,
         takenBy: att.takenByUser,
@@ -85,7 +89,7 @@ export default function StudentAttendancePage() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-4 mb-8">
           {[
             {
-              label: 'Total Classes',
+              label: 'Total Periods',
               value: summary.total || 0,
               gradient: 'from-blue-500 to-cyan-500',
             },
@@ -124,14 +128,15 @@ export default function StudentAttendancePage() {
         ) : studentRecords.length > 0 ? (
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm shadow-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-              <h2 className="text-xl font-bold text-slate-900">Attendance History</h2>
-              <p className="text-sm text-slate-500 mt-1">Your attendance records for the last 6 months</p>
+              <h2 className="text-xl font-bold text-slate-900">Attendance History (by period)</h2>
+              <p className="text-sm text-slate-500 mt-1">Your attendance per class period for the last 6 months</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-200">
                     <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Period</th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Taken By</th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notes</th>
@@ -147,6 +152,9 @@ export default function StudentAttendancePage() {
                           month: 'long',
                           day: 'numeric',
                         })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-slate-700 font-medium">
+                        {record.period}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {record.status === 'present' ? (

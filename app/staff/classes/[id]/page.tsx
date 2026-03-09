@@ -20,6 +20,7 @@ export default function StaffClassDetailPage() {
   useEffect(() => {
     setAttendanceDate(new Date().toISOString().split('T')[0])
   }, [])
+  const [selectedSlot, setSelectedSlot] = useState<{ subject: string; start: string; end: string; day: string } | null>(null)
   const [attendanceRecords, setAttendanceRecords] = useState<Record<string, string>>({})
   const [submittingAttendance, setSubmittingAttendance] = useState(false)
 
@@ -56,6 +57,16 @@ export default function StaffClassDetailPage() {
     enabled: !!classData?.class,
   })
 
+  // Fetch timetable for this class (to get periods for per-class attendance)
+  const { data: timetableData } = useQuery({
+    queryKey: ['timetable', classId],
+    queryFn: async () => {
+      const res = await fetch(`/api/timetable/${classId}`)
+      if (!res.ok) return null
+      return res.json()
+    },
+  })
+
   // Fetch attendance for this class
   const { data: attendanceData } = useQuery({
     queryKey: ['attendance', classId],
@@ -65,6 +76,35 @@ export default function StaffClassDetailPage() {
       return res.json()
     },
   })
+
+  // Today's periods from timetable (based on selected date)
+  const timetableEntries = (timetableData?.timetable?.entries as any[]) || []
+  const dayName = attendanceDate
+    ? new Date(attendanceDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' })
+    : ''
+  // Only show periods assigned to this staff (admin sees all)
+  const todaySlots = dayName
+    ? timetableEntries
+        .filter((e: any) => e.day?.toLowerCase() === dayName.toLowerCase())
+        .filter(
+          (e: any) =>
+            session?.user?.role === 'admin' || !e.staffId || e.staffId === session?.user?.id
+        )
+        .map((e: any) => ({
+          subject: e.subject || 'Period',
+          start: e.start || '',
+          end: e.end || '',
+          day: e.day || dayName,
+        }))
+    : []
+  // Reset selected slot when date or timetable changes; clear if slot no longer in list
+  useEffect(() => {
+    if (!selectedSlot) return
+    const stillValid = todaySlots.some(
+      (s) => s.subject === selectedSlot.subject && s.start === selectedSlot.start && s.end === selectedSlot.end
+    )
+    if (!stillValid) setSelectedSlot(null)
+  }, [attendanceDate, todaySlots])
 
   // Initialize attendance records when students load
   useEffect(() => {
@@ -79,6 +119,10 @@ export default function StaffClassDetailPage() {
 
   const handleSubmitAttendance = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!selectedSlot) {
+      alert('Please select a period (class slot) first.')
+      return
+    }
     setSubmittingAttendance(true)
     try {
       const records = Object.entries(attendanceRecords).map(([studentId, status]) => ({
@@ -91,6 +135,12 @@ export default function StaffClassDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           date: attendanceDate,
+          slot: {
+            subject: selectedSlot.subject,
+            startTime: selectedSlot.start,
+            endTime: selectedSlot.end,
+            day: selectedSlot.day,
+          },
           records,
         }),
       })
@@ -98,7 +148,8 @@ export default function StaffClassDetailPage() {
       if (res.ok) {
         queryClient.invalidateQueries({ queryKey: ['attendance', classId] })
         setAttendanceRecords({})
-        alert('Attendance recorded successfully!')
+        setSelectedSlot(null)
+        alert('Attendance recorded successfully for ' + selectedSlot.subject + '!')
       } else {
         const error = await res.json()
         alert(error.error || 'Failed to record attendance')
@@ -162,21 +213,55 @@ export default function StaffClassDetailPage() {
             {/* Take Attendance Form */}
             {action === 'take-attendance' && (
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm shadow-2xl mb-8 p-6">
-                <h2 className="text-2xl font-bold text-slate-900 mb-6">Take Attendance</h2>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Take Attendance (per period)</h2>
+                <p className="text-slate-500 text-sm mb-6">Select date and period, then mark students for that class slot.</p>
                 <form onSubmit={handleSubmitAttendance} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-2">Date</label>
-                    <input
-                      type="date"
-                      required
-                      value={attendanceDate}
-                      onChange={(e) => setAttendanceDate(e.target.value)}
-                      className="block w-full max-w-xs px-4 py-3 bg-slate-50 backdrop-blur-sm border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-green-500/50 transition-all duration-200"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-600 mb-2">Date</label>
+                      <input
+                        type="date"
+                        required
+                        value={attendanceDate}
+                        onChange={(e) => { setAttendanceDate(e.target.value); setSelectedSlot(null) }}
+                        className="block w-full max-w-xs px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-600 mb-2">Period (class slot)</label>
+                      <select
+                        value={selectedSlot ? `${selectedSlot.subject}|${selectedSlot.start}|${selectedSlot.end}|${selectedSlot.day}` : ''}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          if (!v) { setSelectedSlot(null); return }
+                          const [subject, start, end, day] = v.split('|')
+                          setSelectedSlot({ subject, start, end, day })
+                        }}
+                        className="block w-full max-w-xs px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                        required
+                      >
+                        <option value="">Select period</option>
+                        {todaySlots.map((slot, idx) => {
+                          const value = `${slot.subject}|${slot.start}|${slot.end}|${slot.day}`
+                          const alreadyTaken = (attendanceData?.attendance || []).some(
+                            (a: any) => a.subject === slot.subject && a.startTime === slot.start && a.endTime === slot.end && new Date(a.date).toISOString().slice(0, 10) === attendanceDate
+                          )
+                          return (
+                            <option key={idx} value={value} disabled={alreadyTaken}>
+                              {slot.subject} ({slot.start}–{slot.end}) {alreadyTaken ? '— taken' : ''}
+                            </option>
+                          )
+                        })}
+                      </select>
+                      {dayName && todaySlots.length === 0 && (
+                        <p className="text-amber-600 text-sm mt-1">No slots for {dayName}. Add timetable entries first.</p>
+                      )}
+                    </div>
                   </div>
 
+                  {selectedSlot && (
                   <div className="space-y-3">
-                    <h3 className="text-lg font-semibold text-slate-900">Mark Attendance</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">Mark attendance for {selectedSlot.subject} ({selectedSlot.start}–{selectedSlot.end})</h3>
                     <div className="max-h-96 overflow-y-auto space-y-2">
                       {students.map((student: any) => (
                         <div
@@ -209,6 +294,7 @@ export default function StaffClassDetailPage() {
                       ))}
                     </div>
                   </div>
+                  )}
 
                   <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-200">
                     <button
@@ -220,7 +306,7 @@ export default function StaffClassDetailPage() {
                     </button>
                     <button
                       type="submit"
-                      disabled={submittingAttendance || students.length === 0}
+                      disabled={submittingAttendance || students.length === 0 || !selectedSlot}
                       className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
                       {submittingAttendance ? 'Submitting...' : 'Submit Attendance'}
@@ -243,6 +329,11 @@ export default function StaffClassDetailPage() {
                         month: 'long',
                         day: 'numeric',
                       })}
+                      {selectedAttendance.subject && (
+                        <span className="ml-2 font-medium text-slate-700">
+                          • {selectedAttendance.subject} ({selectedAttendance.startTime}–{selectedAttendance.endTime})
+                        </span>
+                      )}
                     </p>
                   </div>
                   <button
@@ -379,6 +470,7 @@ export default function StaffClassDetailPage() {
                       <thead>
                         <tr className="border-b border-slate-200">
                           <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Period</th>
                           <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Students</th>
                           <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Present</th>
                           <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Absent</th>
@@ -390,6 +482,9 @@ export default function StaffClassDetailPage() {
                           const records = att.records as any[]
                           const present = records.filter((r: any) => r.status === 'present' || r.status === 'late').length
                           const absent = records.length - present
+                          const periodLabel = att.subject
+                            ? `${att.subject} (${att.startTime || ''}–${att.endTime || ''})`
+                            : '—'
                           return (
                             <tr key={att.id} className="hover:bg-slate-50 transition-colors duration-200">
                               <td className="px-6 py-4 whitespace-nowrap text-slate-900">
@@ -399,6 +494,9 @@ export default function StaffClassDetailPage() {
                                   month: 'long',
                                   day: 'numeric',
                                 })}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-slate-700 font-medium">
+                                {periodLabel}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-slate-600">
                                 {records.length}
