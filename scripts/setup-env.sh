@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Setup script for The New College ERP
+# Setup script for NextGen Edu.ERP
 # This script helps set up environment variables
 
-echo "🚀 Setting up environment variables for The New College ERP"
+echo "🚀 Setting up environment variables for NextGen Edu.ERP"
 echo ""
 
 # Check if .env.local exists

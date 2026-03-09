@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "The New College — ERP",
+  title: "NextGen Edu.ERP",
   description: "College ERP System for Students, Staff, and Administrators",
 };
 

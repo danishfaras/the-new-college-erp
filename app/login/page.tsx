@@ -101,7 +101,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">The New College</h1>
+              <h1 className="text-3xl font-bold text-white mb-2">NextGen Edu.ERP</h1>
               <p className="text-gray-300 text-sm">Enterprise Resource Planning System</p>
             </div>
           </div>

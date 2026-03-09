@@ -315,7 +315,7 @@ async function main() {
     data: [
       {
         userId: students[0].id,
-        title: 'Welcome to The New College',
+        title: 'Welcome to NextGen Edu.ERP',
         message: 'Your account has been approved. Welcome to our ERP system!',
         type: 'success',
       },

@@ -15,7 +15,11 @@ export default function StaffClassDetailPage() {
   const action = searchParams.get('action')
   const viewAttendanceId = searchParams.get('view-attendance')
 
-  const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0])
+  // Use empty string initially so server and client match; set today after mount
+  const [attendanceDate, setAttendanceDate] = useState('')
+  useEffect(() => {
+    setAttendanceDate(new Date().toISOString().split('T')[0])
+  }, [])
   const [attendanceRecords, setAttendanceRecords] = useState<Record<string, string>>({})
   const [submittingAttendance, setSubmittingAttendance] = useState(false)
 

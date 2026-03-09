@@ -1,11 +1,11 @@
-# Setup Guide - The New College ERP
+# Setup Guide - NextGen Edu.ERP
 
 ## Quick Start (Copy-Paste Ready)
 
 ```bash
 # 1. Clone the repository
 git clone <repo-url>
-cd the-new-college-erp
+cd nextgen-edu-erp
 
 # 2. Install dependencies
 npm install
@@ -49,7 +49,7 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=your-email@example.com
 SMTP_PASS=your-password
-SMTP_FROM=noreply@thenewcollege.edu
+SMTP_FROM=noreply@nextgenedu.edu
 ```
 
 ### Getting MongoDB Connection String

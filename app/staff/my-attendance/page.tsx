@@ -3,25 +3,37 @@
 import { useSession } from 'next-auth/react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Header } from '@/components/layout/Header'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function StaffMyAttendancePage() {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  // Use empty string initially so server and client match; set today's date after mount
+  const [selectedDate, setSelectedDate] = useState('')
   const [status, setStatus] = useState<'present' | 'absent' | 'late'>('present')
   const [submitting, setSubmitting] = useState(false)
+  // Today's date string (set after mount to avoid server/client mismatch)
+  const [todayStr, setTodayStr] = useState('')
 
-  // For now, we'll store staff attendance in a simple way
-  // In a real app, you might want a separate StaffAttendance model
-  // For now, we'll use localStorage or create a simple API endpoint
-  const [myAttendance, setMyAttendance] = useState<Record<string, string>>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(`staff-attendance-${session?.user.id}`)
-      return stored ? JSON.parse(stored) : {}
+  // Always start with {} so SSR and client initial render match
+  const [myAttendance, setMyAttendance] = useState<Record<string, string>>({})
+
+  // After mount: set today's date and load from localStorage (client-only)
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]
+    setSelectedDate(today)
+    setTodayStr(today)
+    if (typeof window !== 'undefined' && session?.user?.id) {
+      const stored = localStorage.getItem(`staff-attendance-${session.user.id}`)
+      if (stored) {
+        try {
+          setMyAttendance(JSON.parse(stored))
+        } catch {
+          // ignore invalid JSON
+        }
+      }
     }
-    return {}
-  })
+  }, [session?.user?.id])
 
   const handleMarkAttendance = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -123,7 +135,7 @@ export default function StaffMyAttendancePage() {
                   required
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
+                  max={todayStr}
                   className="block w-full px-4 py-3 bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
                 />
               </div>

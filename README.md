@@ -1,4 +1,4 @@
-# The New College — ERP
+# NextGen Edu.ERP
 
 A production-ready college ERP system built with Next.js, TypeScript, Prisma, and MongoDB. This system provides role-based dashboards for students, staff, and administrators with features including class timetables, exam schedules, attendance tracking, fee management, and real-time notifications.
 
@@ -59,7 +59,7 @@ A production-ready college ERP system built with Next.js, TypeScript, Prisma, an
 1. **Clone the repository**
    ```bash
    git clone <repo-url>
-   cd the-new-college-erp
+   cd nextgen-edu-erp
    ```
 
 2. **Install dependencies**
@@ -96,7 +96,7 @@ A production-ready college ERP system built with Next.js, TypeScript, Prisma, an
    SMTP_PORT=587
    SMTP_USER=your-email@example.com
    SMTP_PASS=your-password
-   SMTP_FROM=noreply@thenewcollege.edu
+   SMTP_FROM=noreply@nextgenedu.edu
    ```
    
    **Important**: 
@@ -153,7 +153,7 @@ After seeding, you can use these credentials:
 ## 📁 Project Structure
 
 ```
-the-new-college-erp/
+nextgen-edu-erp/
 ├── app/                    # Next.js App Router pages
 │   ├── api/               # API routes
 │   ├── admin/             # Admin dashboard
@@ -250,7 +250,7 @@ npm run test:e2e
 
 1. Build Docker image:
    ```bash
-   docker build -t the-new-college-erp .
+   docker build -t nextgen-edu-erp .
    ```
 
 2. Run container:
@@ -260,7 +260,7 @@ npm run test:e2e
      -e DATABASE_URL=... \
      -e NEXTAUTH_SECRET=... \
      --name erp-app \
-     the-new-college-erp
+     nextgen-edu-erp
    ```
 
 ## 🔒 Security Features
@@ -310,4 +310,4 @@ For issues and questions, please contact the development team.
 
 ---
 
-Built with ❤️ for The New College
+Built with ❤️ for NextGen Edu.ERP
