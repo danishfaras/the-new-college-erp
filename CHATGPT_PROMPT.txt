@@ -1,0 +1,145 @@
+Generate a comprehensive abstract document (1-2 pages) for a college Enterprise Resource Planning (ERP) system project. The document should be professional, suitable for portfolio/technical documentation.
+
+PROJECT: The New College — Enterprise Resource Planning (ERP) System
+
+TECH STACK:
+- Frontend: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, TanStack React Query
+- Backend: Next.js API Routes, Node.js, TypeScript
+- Database: MongoDB with Prisma ORM (MongoDB provider)
+- Auth: NextAuth.js v5 (beta), JWT, bcryptjs, Edge-compatible middleware
+- Real-time: Socket.IO (WebSocket)
+- Testing: Jest, Playwright, Testing Library
+- DevOps: Docker, Docker Compose, GitHub Actions CI/CD
+- Validation: Zod
+
+KEY FEATURES:
+
+1. Authentication & Authorization:
+   - User signup with admin approval workflow (students require approval)
+   - Role-based access control (Admin, Staff, Student, Accounts)
+   - JWT-based sessions with NextAuth.js v5
+   - Protected routes with Next.js middleware
+
+2. Student Features:
+   - Dashboard with overview stats (attendance %, fees, exams)
+   - View weekly class timetable
+   - View exam schedules (upcoming and past)
+   - View attendance records with percentage calculation
+   - View and pay fees (payment gateway placeholder)
+   - Receive real-time notifications
+
+3. Staff Features:
+   - Dashboard with assigned classes and schedule
+   - View assigned classes (as class teacher)
+   - View students in class with attendance summaries
+   - Take attendance (mark present/absent/late for dates)
+   - View and edit class timetables
+   - Track own personal attendance
+   - Send notifications to students
+
+4. Admin Features:
+   - Dashboard with system statistics
+   - User management (approve students, create staff, view all users)
+   - Class management (create, edit, assign staff)
+   - Fee management (create invoices, track payments)
+   - Comprehensive audit logs with filters
+   - System monitoring
+
+5. Real-time Features:
+   - Socket.IO for live updates
+   - Real-time timetable updates
+   - Instant notifications
+   - WebSocket bidirectional communication
+
+6. UI/UX:
+   - Futuristic design with glassmorphism
+   - Gradient backgrounds and animations
+   - Responsive mobile-first design
+   - Active tab indicators
+   - Role-specific color themes
+
+DATABASE MODELS:
+- User (id, email, name, password, role, approved, timestamps)
+- Profile (id, userId, rollNo, department, phone, avatar)
+- Class (id, name, code, department, staffIds[], timestamps)
+- Timetable (id, classId, entries[JSON], updatedBy, updatedAt)
+- Exam (id, classId, name, date, startTime, endTime, subjects[JSON], timestamps)
+- Attendance (id, classId, date, records[JSON], takenBy, timestamps) - indexed on [classId, date]
+- Fee (id, studentId, amount, dueDate, paid, paidAt, invoiceId, timestamps) - indexed on studentId
+- AuditLog (id, action, actorId, targetId, meta[JSON], timestamps) - indexed on actorId, createdAt
+- Notification (id, userId, title, message, read, type, link, timestamps) - indexed on [userId, read]
+
+API ENDPOINTS:
+- Auth: POST /api/auth/signup, POST /api/auth/[...nextauth], POST /api/auth/approve
+- Users: GET /api/users, GET /api/users/:id, PUT /api/users/:id, POST /api/users/create-staff
+- Classes: GET /api/classes, POST /api/classes, GET /api/classes/:id, PUT /api/classes/:id
+- Timetable: GET /api/timetable/:classId, PUT /api/timetable/:classId
+- Exams: POST /api/exams, GET /api/exams/:classId
+- Attendance: POST /api/attendance/:classId, GET /api/attendance/:classId
+- Fees: GET /api/fees/student/:studentId, POST /api/fees, POST /api/fees/pay/:id
+- Notifications: GET /api/notifications, POST /api/notifications, POST /api/notifications/:id/read
+- Audit: GET /api/audit
+
+ARCHITECTURE HIGHLIGHTS:
+- Server-Side Rendering (SSR) with Next.js App Router
+- API-first RESTful architecture
+- Real-time bidirectional WebSocket communication
+- Type-safe Prisma operations with MongoDB
+- Edge-compatible middleware (JWT-based, no Prisma in Edge)
+- Role-based route protection at middleware level
+- Manual relation handling for MongoDB (Prisma limitations)
+- React Query for server state management
+- Comprehensive audit logging
+
+TECHNICAL ACHIEVEMENTS:
+1. MongoDB integration with Prisma ORM (manual relation handling)
+2. NextAuth v5 beta implementation with Edge compatibility
+3. Real-time WebSocket infrastructure
+4. Comprehensive RBAC with middleware protection
+5. Admin approval workflow for student signup
+6. Flexible attendance tracking with percentage calculations
+7. Futuristic UI with glassmorphism and animations
+8. Full TypeScript coverage with strict mode
+9. Scalable stateless API architecture
+10. System-wide audit logging
+
+SECURITY:
+- Password hashing (bcrypt, 10 rounds)
+- JWT authentication
+- Role-based access control
+- Input validation (Zod)
+- Server-side session validation
+- Audit logging for sensitive operations
+- Environment variable protection
+- CORS configuration
+- XSS protection
+
+SEED DATA:
+- 2 admins, 4 staff, 40 students
+- 3 classes (BSc-CS-2, BSc-CS-3, BCom-2)
+- Timetables (Monday-Friday)
+- 2 exam schedules
+- Attendance records (last 10 days)
+- Fee invoices for all students
+
+TEST CREDENTIALS (after seeding):
+- Admin: admin1@college.edu / password123
+- Staff: staff1@college.edu / password123
+- Student: student1@college.edu / password123
+
+REQUIRED SECTIONS:
+1. Executive Summary (problem, solution, overview)
+2. Project Objectives (goals, features, target users)
+3. Technology Stack (organized by category)
+4. System Architecture (high-level overview, components, data flow)
+5. Key Features & Functionality (detailed descriptions per role)
+6. Technical Highlights (achievements, optimizations, scalability)
+7. Security & Best Practices
+8. Deployment & DevOps (Docker, CI/CD, environment management)
+9. Testing Strategy (unit, integration, E2E)
+10. Future Enhancements (payment gateway, analytics, mobile app)
+11. Conclusion
+
+STYLE: Professional, technical, clear, well-structured with headings, suitable for both technical and non-technical audiences. Format as markdown. Use bullet points for lists.
+
+Generate the complete abstract document now.
