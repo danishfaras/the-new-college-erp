@@ -137,6 +137,7 @@ export async function PUT(
     if (validatedData.code) updateData.code = validatedData.code
     if (validatedData.department) updateData.department = validatedData.department
     if (validatedData.staffIds) updateData.staffIds = validatedData.staffIds
+    if (validatedData.studentIds !== undefined) updateData.studentIds = validatedData.studentIds
 
     const updatedClass = await prisma.class.update({
       where: { id: classId },

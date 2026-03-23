@@ -1,5 +1,5 @@
 {
-  "name": "the-new-college-erp",
+  "name": "nextgen-edu-erp",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,6 +10,8 @@
     "setup:env": "bash scripts/setup-env.sh",
     "prisma:generate": "bash scripts/fix-env.sh && dotenv -e .env.local -e .env -- prisma generate",
     "prisma:push": "bash scripts/fix-env.sh && dotenv -e .env.local -e .env -- prisma db push",
+    "prisma:push:ipv4": "bash scripts/fix-env.sh && NODE_OPTIONS='--dns-result-order=ipv4first' dotenv -e .env.local -e .env -- prisma db push",
+    "prisma:push:docker": "bash scripts/docker-prisma-push.sh",
     "prisma:studio": "dotenv -e .env.local -e .env -- prisma studio",
     "seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
     "test": "jest",

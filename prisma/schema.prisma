@@ -38,6 +38,7 @@ model Class {
   code        String   @unique
   department  String
   staffIds    String[] @db.ObjectId
+  studentIds  String[] @db.ObjectId // assigned students
   timetables  Timetable[]
   exams       Exam[]
   attendance  Attendance[]
@@ -70,6 +71,11 @@ model Attendance {
   classId   String   @db.ObjectId
   class     Class    @relation(fields: [classId], references: [id])
   date      DateTime
+  // Per-period: which class slot this attendance is for (one record = one period)
+  subject   String?  // e.g. "Mathematics"
+  startTime String?  // e.g. "09:00"
+  endTime   String?  // e.g. "10:00"
+  day       String?  // e.g. "Monday"
   records   Json     // [{studentId, status: "present"|"absent"|"late", note?}]
   takenBy   String   @db.ObjectId
   takenByUser User   @relation("AttendanceTakenBy", fields: [takenBy], references: [id])

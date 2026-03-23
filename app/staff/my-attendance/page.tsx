@@ -3,25 +3,37 @@
 import { useSession } from 'next-auth/react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Header } from '@/components/layout/Header'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function StaffMyAttendancePage() {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  // Use empty string initially so server and client match; set today's date after mount
+  const [selectedDate, setSelectedDate] = useState('')
   const [status, setStatus] = useState<'present' | 'absent' | 'late'>('present')
   const [submitting, setSubmitting] = useState(false)
+  // Today's date string (set after mount to avoid server/client mismatch)
+  const [todayStr, setTodayStr] = useState('')
 
-  // For now, we'll store staff attendance in a simple way
-  // In a real app, you might want a separate StaffAttendance model
-  // For now, we'll use localStorage or create a simple API endpoint
-  const [myAttendance, setMyAttendance] = useState<Record<string, string>>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(`staff-attendance-${session?.user.id}`)
-      return stored ? JSON.parse(stored) : {}
+  // Always start with {} so SSR and client initial render match
+  const [myAttendance, setMyAttendance] = useState<Record<string, string>>({})
+
+  // After mount: set today's date and load from localStorage (client-only)
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]
+    setSelectedDate(today)
+    setTodayStr(today)
+    if (typeof window !== 'undefined' && session?.user?.id) {
+      const stored = localStorage.getItem(`staff-attendance-${session.user.id}`)
+      if (stored) {
+        try {
+          setMyAttendance(JSON.parse(stored))
+        } catch {
+          // ignore invalid JSON
+        }
+      }
     }
-    return {}
-  })
+  }, [session?.user?.id])
 
   const handleMarkAttendance = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,14 +78,14 @@ export default function StaffMyAttendancePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-slate-50">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">My Attendance</h1>
-            <p className="text-gray-400">Track your own attendance and work records</p>
+            <h1 className="text-4xl font-bold text-slate-900 mb-2">My Attendance</h1>
+            <p className="text-slate-500">Track your own attendance and work records</p>
           </div>
         </div>
 
@@ -103,49 +115,49 @@ export default function StaffMyAttendancePage() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="backdrop-blur-xl bg-white/5 rounded-xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-300"
+              className="bg-white rounded-lg border border-slate-200 shadow-sm p-6 hover:bg-slate-100 transition-all duration-300"
             >
-              <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{stat.label}</p>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
+              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
             </div>
           ))}
         </div>
 
         {/* Mark Attendance Form */}
-        <div className="backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 shadow-2xl mb-8 p-6">
-          <h2 className="text-2xl font-bold text-white mb-6">Mark Today's Attendance</h2>
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm shadow-2xl mb-8 p-6">
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">Mark Today's Attendance</h2>
           <form onSubmit={handleMarkAttendance} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Date</label>
+                <label className="block text-sm font-medium text-slate-600 mb-2">Date</label>
                 <input
                   type="date"
                   required
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
-                  className="block w-full px-4 py-3 bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
+                  max={todayStr}
+                  className="block w-full px-4 py-3 bg-slate-50 backdrop-blur-sm border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
+                <label className="block text-sm font-medium text-slate-600 mb-2">Status</label>
                 <select
                   required
                   value={status}
                   onChange={(e) => setStatus(e.target.value as 'present' | 'absent' | 'late')}
-                  className="block w-full px-4 py-3 bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
+                  className="block w-full px-4 py-3 bg-slate-50 backdrop-blur-sm border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
                 >
-                  <option value="present" className="bg-slate-800">Present</option>
-                  <option value="late" className="bg-slate-800">Late</option>
-                  <option value="absent" className="bg-slate-800">Absent</option>
+                  <option value="present" className="bg-white text-slate-900">Present</option>
+                  <option value="late" className="bg-white text-slate-900">Late</option>
+                  <option value="absent" className="bg-white text-slate-900">Absent</option>
                 </select>
               </div>
             </div>
-            <div className="flex items-center justify-end space-x-4 pt-4 border-t border-white/10">
+            <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-200">
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="px-6 py-3 bg-blue-600 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {submitting ? 'Marking...' : 'Mark Attendance'}
               </button>
@@ -154,32 +166,32 @@ export default function StaffMyAttendancePage() {
         </div>
 
         {/* Attendance History */}
-        <div className="backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-blue-500/10 to-cyan-500/10">
-            <h2 className="text-xl font-bold text-white">Attendance History</h2>
-            <p className="text-sm text-gray-400 mt-1">Your attendance records</p>
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm shadow-2xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <h2 className="text-xl font-bold text-slate-900">Attendance History</h2>
+            <p className="text-sm text-slate-500 mt-1">Your attendance records</p>
           </div>
           <div className="overflow-x-auto">
             {attendanceRecords.length > 0 ? (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Day</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                  <tr className="border-b border-slate-200">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Day</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/10">
+                <tbody className="divide-y divide-slate-200">
                   {attendanceRecords.map((record, index) => (
-                    <tr key={index} className="hover:bg-white/5 transition-colors duration-200">
-                      <td className="px-6 py-4 whitespace-nowrap text-white">
+                    <tr key={index} className="hover:bg-slate-50 transition-colors duration-200">
+                      <td className="px-6 py-4 whitespace-nowrap text-slate-900">
                         {new Date(record.date).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric',
                         })}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-400">
+                      <td className="px-6 py-4 whitespace-nowrap text-slate-500">
                         {new Date(record.date).toLocaleDateString('en-US', { weekday: 'long' })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -202,12 +214,12 @@ export default function StaffMyAttendancePage() {
             ) : (
               <div className="text-center py-12">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-500/20 mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <p className="text-gray-400 text-lg">No attendance records</p>
-                <p className="text-gray-500 text-sm mt-2">Mark your attendance to get started</p>
+                <p className="text-slate-500 text-lg">No attendance records</p>
+                <p className="text-slate-500 text-sm mt-2">Mark your attendance to get started</p>
               </div>
             )}
           </div>

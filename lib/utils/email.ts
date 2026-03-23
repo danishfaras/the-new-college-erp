@@ -27,7 +27,7 @@ export async function sendEmail(
 
   try {
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'noreply@thenewcollege.edu',
+      from: process.env.SMTP_FROM || 'noreply@nextgenedu.edu',
       to,
       subject,
       text,
@@ -41,10 +41,10 @@ export async function sendEmail(
 
 export function getApprovalEmailTemplate(name: string): { subject: string; html: string } {
   return {
-    subject: 'The New College — Your account approval',
+    subject: 'NextGen Edu.ERP — Your account approval',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">The New College</h2>
+        <h2 style="color: #2563eb;">NextGen Edu.ERP</h2>
         <p>Dear ${name},</p>
         <p>Your account has been approved by the administrator. You can now log in to access your dashboard.</p>
         <p>
@@ -52,7 +52,7 @@ export function getApprovalEmailTemplate(name: string): { subject: string; html:
             Log In
           </a>
         </p>
-        <p>Best regards,<br>The New College Team</p>
+        <p>Best regards,<br>NextGen Edu.ERP Team</p>
       </div>
     `,
   }
@@ -65,10 +65,10 @@ export function getInvoiceEmailTemplate(
   dueDate: Date
 ): { subject: string; html: string } {
   return {
-    subject: `The New College — Invoice #${invoiceId}`,
+    subject: `NextGen Edu.ERP — Invoice #${invoiceId}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">The New College</h2>
+        <h2 style="color: #2563eb;">NextGen Edu.ERP</h2>
         <p>Dear ${name},</p>
         <p>A new invoice has been issued for your account.</p>
         <div style="background-color: #f3f4f6; padding: 20px; border-radius: 5px; margin: 20px 0;">
@@ -81,7 +81,7 @@ export function getInvoiceEmailTemplate(
             View Invoice
           </a>
         </p>
-        <p>Best regards,<br>The New College Team</p>
+        <p>Best regards,<br>NextGen Edu.ERP Team</p>
       </div>
     `,
   }

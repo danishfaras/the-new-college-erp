@@ -142,17 +142,58 @@ export async function POST(
     const body = await request.json()
     const validatedData = createAttendanceSchema.parse(body)
 
-    // Check if attendance already exists for this date
+    // Normalize date to start of day (UTC)
+    const dateStr = validatedData.date
+    const attendanceDate = dateStr.includes('T')
+      ? new Date(dateStr)
+      : new Date(dateStr + 'T00:00:00.000Z')
+
+    const { slot, records } = validatedData
+
+    // Only the staff assigned to this period (in the timetable) can take attendance for it
+    const timetable = await prisma.timetable.findFirst({
+      where: { classId },
+      orderBy: { updatedAt: 'desc' },
+    })
+    const entries = (timetable?.entries as any[]) || []
+    const slotEntry = entries.find(
+      (e: any) =>
+        (e.day || '').toLowerCase() === (slot.day || '').toLowerCase() &&
+        (e.subject || '') === (slot.subject || '') &&
+        (e.start || '') === (slot.startTime || '') &&
+        (e.end || '') === (slot.endTime || '')
+    )
+    // Staff: only the teacher assigned to this period in the timetable can take attendance
+    if (session.user.role === 'staff') {
+      if (!slotEntry) {
+        return NextResponse.json(
+          { error: 'This period is not in the class timetable.' },
+          { status: 403 }
+        )
+      }
+      if (slotEntry.staffId && session.user.id !== slotEntry.staffId) {
+        return NextResponse.json(
+          { error: 'Only the staff assigned to this period can take attendance for it.' },
+          { status: 403 }
+        )
+      }
+    }
+
+    // Check if attendance already exists for this class + date + period (slot)
+    const existingWhere: any = {
+      classId,
+      date: attendanceDate,
+      subject: slot.subject,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+    }
     const existingAttendance = await prisma.attendance.findFirst({
-      where: {
-        classId,
-        date: new Date(validatedData.date),
-      },
+      where: existingWhere,
     })
 
     if (existingAttendance) {
       return NextResponse.json(
-        { error: 'Attendance for this date already exists' },
+        { error: `Attendance for ${slot.subject} (${slot.startTime}-${slot.endTime}) on this date already exists` },
         { status: 400 }
       )
     }
@@ -160,8 +201,12 @@ export async function POST(
     const attendance = await prisma.attendance.create({
       data: {
         classId,
-        date: new Date(validatedData.date),
-        records: validatedData.records as any,
+        date: attendanceDate,
+        subject: slot.subject,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        day: slot.day,
+        records: records as any,
         takenBy: session.user.id,
       },
       include: {
@@ -179,7 +224,8 @@ export async function POST(
     await createAuditLog('ATTENDANCE_CREATED', session.user.id, classId, {
       classCode: classData.code,
       date: attendance.date,
-      recordsCount: validatedData.records.length,
+      recordsCount: records.length,
+      slot: slot.subject + ' ' + slot.startTime + '-' + slot.endTime,
     })
 
     // Emit Socket.IO update

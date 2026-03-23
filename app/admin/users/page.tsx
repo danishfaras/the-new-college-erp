@@ -1,16 +1,25 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Header } from '@/components/layout/Header'
 import { useState } from 'react'
 
+const emptyStaffForm = { name: '', email: '', password: '', role: 'staff' as const, department: '', phone: '' }
+const emptyStudentForm = { name: '', email: '', password: '', rollNo: '', department: '', phone: '' }
+
 export default function AdminUsersPage() {
   const { data: session } = useSession()
-  const [activeTab, setActiveTab] = useState<string>('approval') // 'approval', 'admin', 'staff', 'student'
+  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<string>('approval')
   const [filterApproved, setFilterApproved] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [approvingUserId, setApprovingUserId] = useState<string | null>(null)
+  const [showAddStaff, setShowAddStaff] = useState(false)
+  const [showAddStudent, setShowAddStudent] = useState(false)
+  const [staffForm, setStaffForm] = useState(emptyStaffForm)
+  const [studentForm, setStudentForm] = useState(emptyStudentForm)
+  const [createError, setCreateError] = useState('')
 
   // Fetch all users for stats
   const { data: allUsersData } = useQuery({
@@ -45,6 +54,60 @@ export default function AdminUsersPage() {
     },
   })
 
+  const createStaffMutation = useMutation({
+    mutationFn: async (data: typeof emptyStaffForm) => {
+      const res = await fetch('/api/users/create-staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          role: data.role,
+          department: data.department || undefined,
+          phone: data.phone || undefined,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed to create staff')
+      return json
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setShowAddStaff(false)
+      setStaffForm(emptyStaffForm)
+      setCreateError('')
+    },
+    onError: (e: Error) => setCreateError(e.message),
+  })
+
+  const createStudentMutation = useMutation({
+    mutationFn: async (data: typeof emptyStudentForm) => {
+      const res = await fetch('/api/users/create-student', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          rollNo: data.rollNo || undefined,
+          department: data.department || undefined,
+          phone: data.phone || undefined,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed to create student')
+      return json
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setShowAddStudent(false)
+      setStudentForm(emptyStudentForm)
+      setCreateError('')
+    },
+    onError: (e: Error) => setCreateError(e.message),
+  })
+
   const handleApprove = async (userId: string) => {
     setApprovingUserId(userId)
     try {
@@ -53,9 +116,7 @@ export default function AdminUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
       })
-      if (res.ok) {
-        refetch()
-      }
+      if (res.ok) refetch()
     } catch (error) {
       console.error('Failed to approve user:', error)
     } finally {
@@ -76,16 +137,11 @@ export default function AdminUsersPage() {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin':
-        return 'from-red-500 to-pink-500'
-      case 'staff':
-        return 'from-blue-500 to-cyan-500'
-      case 'student':
-        return 'from-green-500 to-emerald-500'
-      case 'accounts':
-        return 'from-purple-500 to-indigo-500'
-      default:
-        return 'from-gray-500 to-gray-600'
+      case 'admin': return 'bg-red-100 text-red-800'
+      case 'staff': return 'bg-blue-100 text-blue-800'
+      case 'student': return 'bg-emerald-100 text-emerald-800'
+      case 'accounts': return 'bg-slate-100 text-slate-800'
+      default: return 'bg-slate-100 text-slate-600'
     }
   }
 
@@ -99,95 +155,61 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-slate-50">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">User Management</h1>
-            <p className="text-gray-400">Manage all users, roles, and permissions</p>
+            <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
+            <p className="text-slate-500 text-sm mt-1">Manage users, roles, and add staff or students</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowAddStaff(true); setCreateError(''); }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg"
+            >
+              Add Staff
+            </button>
+            <button
+              onClick={() => { setShowAddStudent(true); setCreateError(''); }}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg"
+            >
+              Add Student
+            </button>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5 mb-8">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5 mb-6">
           {[
-            { label: 'Pending', value: roleStats.pending, color: 'from-amber-500 to-orange-500' },
-            { label: 'Admins', value: roleStats.admin, color: 'from-red-500 to-pink-500' },
-            { label: 'Staff', value: roleStats.staff, color: 'from-blue-500 to-cyan-500' },
-            { label: 'Students', value: roleStats.student, color: 'from-green-500 to-emerald-500' },
-            { label: 'Accounts', value: roleStats.accounts, color: 'from-purple-500 to-indigo-500' },
+            { label: 'Pending', value: roleStats.pending },
+            { label: 'Admins', value: roleStats.admin },
+            { label: 'Staff', value: roleStats.staff },
+            { label: 'Students', value: roleStats.student },
+            { label: 'Accounts', value: roleStats.accounts },
           ].map((stat) => (
-            <div
-              key={stat.label}
-              className="backdrop-blur-xl bg-white/5 rounded-xl border border-white/10 p-4 hover:bg-white/10 transition-all duration-300"
-            >
-              <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{stat.label}</p>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
+            <div key={stat.label} className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
+              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
             </div>
           ))}
         </div>
 
-        {/* Tabs */}
-        <div className="backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 p-2 mb-6">
-          <div className="flex space-x-2">
-            {[
-              { id: 'approval', label: 'Approval', icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              ), count: roleStats.pending, gradient: 'from-amber-500 to-orange-500' },
-              { id: 'admin', label: 'Admins', icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              ), count: roleStats.admin, gradient: 'from-red-500 to-pink-500' },
-              { id: 'staff', label: 'Staff', icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              ), count: roleStats.staff, gradient: 'from-blue-500 to-cyan-500' },
-              { id: 'student', label: 'Students', icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14v9M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                </svg>
-              ), count: roleStats.student, gradient: 'from-green-500 to-emerald-500' },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex-1 flex items-center justify-center space-x-2 px-6 py-4 rounded-xl font-semibold transition-all duration-300 ${
-                    isActive
-                      ? `bg-gradient-to-r ${tab.gradient || 'from-purple-500 to-indigo-500'} text-white shadow-lg shadow-purple-500/50 scale-105`
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <div className={isActive ? 'text-white' : 'text-gray-400'}>{tab.icon}</div>
-                  <span>{tab.label}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                    isActive
-                      ? 'bg-white/20 text-white'
-                      : 'bg-white/10 text-gray-400'
-                  }`}>
-                    {tab.count}
-                  </span>
-                  {/* Active indicator */}
-                  {isActive && (
-                    <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1/2 h-1 bg-white rounded-full"></div>
-                  )}
-                </button>
-              )
-            })}
-          </div>
+        <div className="bg-white rounded-lg border border-slate-200 p-2 mb-6 flex flex-wrap gap-1">
+          {(['approval', 'admin', 'staff', 'student'] as const).map((id) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                activeTab === id ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {id.charAt(0).toUpperCase() + id.slice(1)} ({roleStats[id]})
+            </button>
+          ))}
         </div>
 
         {/* Filters and Search */}
-        <div className="backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 p-6 mb-8">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 mb-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Search */}
             <div className="relative">
@@ -223,9 +245,9 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Users Table */}
-        <div className="backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
-            <h2 className="text-xl font-bold text-white">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-2xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <h2 className="text-xl font-bold text-slate-900">
               Users ({filteredUsers.length})
             </h2>
           </div>
@@ -234,82 +256,52 @@ export default function AdminUsersPage() {
             {filteredUsers.length > 0 ? (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Role</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Department</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Joined</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">User</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Role</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Department</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Joined</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/10">
+                <tbody className="divide-y divide-slate-100">
                   {filteredUsers.map((user: any) => (
-                    <tr
-                      key={user.id}
-                      className="hover:bg-white/5 transition-colors duration-200"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-4">
-                          <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getRoleColor(user.role)} flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
+                    <tr key={user.id} className="hover:bg-slate-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-12 h-12 rounded-full ${getRoleColor(user.role)} flex items-center justify-center font-bold text-sm`}>
                             {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
                           </div>
                           <div>
-                            <div className="text-white font-semibold">{user.name || 'No Name'}</div>
-                            <div className="text-gray-400 text-sm">{user.email}</div>
-                            {user.profile?.rollNo && (
-                              <div className="text-gray-500 text-xs">Roll: {user.profile.rollNo}</div>
-                            )}
+                            <div className="font-medium text-slate-900">{user.name || 'No Name'}</div>
+                            <div className="text-slate-500 text-sm">{user.email}</div>
+                            {user.profile?.rollNo && <div className="text-slate-400 text-xs">Roll: {user.profile.rollNo}</div>}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${getRoleColor(user.role)} text-white`}>
-                          {user.role.toUpperCase()}
-                        </span>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getRoleColor(user.role)}`}>{user.role}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-gray-300">
-                          {user.profile?.department || '—'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 text-slate-600 text-sm">{user.profile?.department || '—'}</td>
+                      <td className="px-6 py-4">
                         {user.approved ? (
-                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
-                            Approved
-                          </span>
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">Approved</span>
                         ) : (
-                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                            Pending
-                          </span>
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800">Pending</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-400 text-sm">
+                      <td className="px-6 py-4 text-slate-500 text-sm">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4">
                         {!user.approved && (
                           <button
                             onClick={() => handleApprove(user.id)}
                             disabled={approvingUserId === user.id}
-                            className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-lg shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center space-x-2"
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg disabled:opacity-50"
                           >
-                            {approvingUserId === user.id ? (
-                              <>
-                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span>Approving...</span>
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span>Approve</span>
-                              </>
-                            )}
+                            {approvingUserId === user.id ? 'Approving...' : 'Approve'}
                           </button>
                         )}
                       </td>
@@ -318,18 +310,91 @@ export default function AdminUsersPage() {
                 </tbody>
               </table>
             ) : (
-              <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-500/20 mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                </div>
-                <p className="text-gray-400 text-lg">No users found</p>
-                <p className="text-gray-500 text-sm mt-2">Try adjusting your filters</p>
-              </div>
+              <div className="text-center py-12 text-slate-500">No users found. Try adjusting filters or add staff/students above.</div>
             )}
           </div>
         </div>
+
+        {showAddStaff && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Add Staff</h2>
+              {createError && <p className="text-red-600 text-sm mb-4">{createError}</p>}
+              <form onSubmit={(e) => { e.preventDefault(); createStaffMutation.mutate(staffForm); }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                  <input value={staffForm.name} onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })} required className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Full name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                  <input type="email" value={staffForm.email} onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })} required className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="staff@college.edu" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                  <input type="password" value={staffForm.password} onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })} required minLength={6} className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Min 6 characters" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                  <select value={staffForm.role} onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value as 'staff' | 'accounts' })} className="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    <option value="staff">Staff</option>
+                    <option value="accounts">Accounts</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Department (optional)</label>
+                  <input value={staffForm.department} onChange={(e) => setStaffForm({ ...staffForm, department: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="e.g. Computer Science" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Phone (optional)</label>
+                  <input value={staffForm.phone} onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button type="button" onClick={() => { setShowAddStaff(false); setCreateError(''); }} className="flex-1 py-2 border border-slate-300 rounded-lg text-slate-700">Cancel</button>
+                  <button type="submit" disabled={createStaffMutation.isPending} className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">Create Staff</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {showAddStudent && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Add Student</h2>
+              {createError && <p className="text-red-600 text-sm mb-4">{createError}</p>}
+              <form onSubmit={(e) => { e.preventDefault(); createStudentMutation.mutate(studentForm); }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                  <input value={studentForm.name} onChange={(e) => setStudentForm({ ...studentForm, name: e.target.value })} required className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Full name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                  <input type="email" value={studentForm.email} onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} required className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="student@college.edu" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                  <input type="password" value={studentForm.password} onChange={(e) => setStudentForm({ ...studentForm, password: e.target.value })} required minLength={6} className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Min 6 characters" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Roll No (optional)</label>
+                  <input value={studentForm.rollNo} onChange={(e) => setStudentForm({ ...studentForm, rollNo: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Department (optional)</label>
+                  <input value={studentForm.department} onChange={(e) => setStudentForm({ ...studentForm, department: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="e.g. Computer Science" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Phone (optional)</label>
+                  <input value={studentForm.phone} onChange={(e) => setStudentForm({ ...studentForm, phone: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button type="button" onClick={() => { setShowAddStudent(false); setCreateError(''); }} className="flex-1 py-2 border border-slate-300 rounded-lg text-slate-700">Cancel</button>
+                  <button type="submit" disabled={createStudentMutation.isPending} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50">Create Student</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )

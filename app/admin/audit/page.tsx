@@ -54,19 +54,19 @@ export default function AdminAuditPage() {
   ).sort() as string[]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-slate-50">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-white mb-2">Audit Logs</h1>
-              <p className="text-gray-400">View system activity and changes</p>
+              <h1 className="text-4xl font-bold text-slate-900 mb-2">Audit Logs</h1>
+              <p className="text-slate-500">View system activity and changes</p>
             </div>
             <Link
               href="/admin"
-              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 flex items-center space-x-2"
+              className="px-4 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-white transition-all duration-200 flex items-center space-x-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -85,21 +85,21 @@ export default function AdminAuditPage() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="backdrop-blur-xl bg-white/5 rounded-xl border border-white/10 p-4 hover:bg-white/10 transition-all duration-300"
+              className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 hover:bg-slate-100 transition-all duration-300"
             >
-              <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{stat.label}</p>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
+              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
             </div>
           ))}
         </div>
 
         {/* Filters */}
-        <div className="backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 p-6 mb-8">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6 mb-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Search */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
@@ -108,7 +108,7 @@ export default function AdminAuditPage() {
                 placeholder="Search logs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-12 pr-4 py-3 bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200"
+                className="block w-full pl-12 pr-4 py-3 bg-slate-50 backdrop-blur-sm border border-slate-300 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200"
               />
             </div>
 
@@ -117,7 +117,7 @@ export default function AdminAuditPage() {
               <select
                 value={filterAction}
                 onChange={(e) => setFilterAction(e.target.value)}
-                className="block w-full px-4 py-3 bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200"
+                className="block w-full px-4 py-3 bg-slate-50 backdrop-blur-sm border border-slate-300 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200"
               >
                 <option value="all" className="bg-slate-800">All Actions</option>
                 {actionTypes.map((action) => (
@@ -131,33 +131,33 @@ export default function AdminAuditPage() {
         </div>
 
         {/* Audit Logs Table */}
-        <div className="backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
-            <h2 className="text-xl font-bold text-white">Activity Logs</h2>
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm shadow-2xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <h2 className="text-xl font-bold text-slate-900">Activity Logs</h2>
           </div>
 
           <div className="overflow-x-auto">
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
-                <p className="mt-4 text-gray-400">Loading audit logs...</p>
+                <p className="mt-4 text-slate-500">Loading audit logs...</p>
               </div>
             ) : filteredLogs.length > 0 ? (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Timestamp</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actor</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Target ID</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Details</th>
+                  <tr className="border-b border-slate-200">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Timestamp</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actor</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Target ID</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Details</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/10">
+                <tbody className="divide-y divide-slate-200">
                   {filteredLogs.map((log: any) => (
-                    <tr key={log.id} className="hover:bg-white/5 transition-colors duration-200">
+                    <tr key={log.id} className="hover:bg-slate-50 transition-colors duration-200">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-300 text-sm">
+                        <div className="text-slate-600 text-sm">
                           {new Date(log.createdAt).toLocaleString()}
                         </div>
                       </td>
@@ -170,14 +170,14 @@ export default function AdminAuditPage() {
                         {log.actor ? (
                           <div>
                             <div className="text-white font-medium">{log.actor.name || 'Unknown'}</div>
-                            <div className="text-gray-400 text-xs">{log.actor.email}</div>
+                            <div className="text-slate-500 text-xs">{log.actor.email}</div>
                           </div>
                         ) : (
-                          <span className="text-gray-500 text-sm">System</span>
+                          <span className="text-slate-500 text-sm">System</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-gray-300 font-mono text-sm">
+                        <span className="text-slate-600 font-mono text-sm">
                           {log.targetId ? log.targetId.slice(0, 8) + '...' : '—'}
                         </span>
                       </td>
@@ -185,12 +185,12 @@ export default function AdminAuditPage() {
                         {log.meta ? (
                           <details className="cursor-pointer">
                             <summary className="text-blue-400 hover:text-blue-300 text-sm">View Details</summary>
-                            <pre className="mt-2 p-3 bg-black/20 rounded-lg text-xs text-gray-300 overflow-x-auto">
+                            <pre className="mt-2 p-3 bg-black/20 rounded-lg text-xs text-slate-600 overflow-x-auto">
                               {JSON.stringify(log.meta, null, 2)}
                             </pre>
                           </details>
                         ) : (
-                          <span className="text-gray-500 text-sm">—</span>
+                          <span className="text-slate-500 text-sm">—</span>
                         )}
                       </td>
                     </tr>
@@ -200,12 +200,12 @@ export default function AdminAuditPage() {
             ) : (
               <div className="text-center py-12">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-500/20 mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <p className="text-gray-400 text-lg">No audit logs found</p>
-                <p className="text-gray-500 text-sm mt-2">Activity logs will appear here</p>
+                <p className="text-slate-500 text-lg">No audit logs found</p>
+                <p className="text-slate-500 text-sm mt-2">Activity logs will appear here</p>
               </div>
             )}
           </div>

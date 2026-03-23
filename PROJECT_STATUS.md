@@ -1,4 +1,4 @@
-# The New College ERP - Project Status
+# NextGen Edu.ERP - Project Status
 
 ## ✅ Completed Features
 
@@ -116,7 +116,7 @@
 ```bash
 # Clone and setup
 git clone <repo>
-cd the-new-college-erp
+cd nextgen-edu-erp
 cp .env.example .env.local
 # Edit .env.local with your MongoDB connection
 
