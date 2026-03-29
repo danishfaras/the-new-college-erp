@@ -66,5 +66,6 @@ export const config = {
     '/api/fees/:path*',
     '/api/notifications/:path*',
     '/api/audit/:path*',
+    '/api/coverage/:path*',
   ],
 }

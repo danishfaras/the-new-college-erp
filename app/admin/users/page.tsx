@@ -5,7 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Header } from '@/components/layout/Header'
 import { useState } from 'react'
 
-const emptyStaffForm = { name: '', email: '', password: '', role: 'staff' as const, department: '', phone: '' }
+const emptyStaffForm = {
+  name: '',
+  email: '',
+  password: '',
+  role: 'staff' as 'staff' | 'accounts',
+  department: '',
+  phone: '',
+}
 const emptyStudentForm = { name: '', email: '', password: '', rollNo: '', department: '', phone: '' }
 
 export default function AdminUsersPage() {
@@ -203,7 +210,7 @@ export default function AdminUsersPage() {
                 activeTab === id ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
-              {id.charAt(0).toUpperCase() + id.slice(1)} ({roleStats[id]})
+              {id.charAt(0).toUpperCase() + id.slice(1)} ({id === 'approval' ? roleStats.pending : roleStats[id]})
             </button>
           ))}
         </div>

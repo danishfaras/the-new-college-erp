@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db/prisma'
 import { createAttendanceSchema } from '@/lib/validations/attendance'
 import { createAuditLog } from '@/lib/utils/audit'
 import { emitAttendanceUpdate } from '@/lib/socket'
+import { staffMayRecordAttendance } from '@/lib/attendance-eligibility'
+import type { TimetableEntry } from '@/lib/timetable-slot-utils'
 
 export async function GET(
   request: NextRequest,
@@ -155,27 +157,19 @@ export async function POST(
       where: { classId },
       orderBy: { updatedAt: 'desc' },
     })
-    const entries = (timetable?.entries as any[]) || []
-    const slotEntry = entries.find(
-      (e: any) =>
-        (e.day || '').toLowerCase() === (slot.day || '').toLowerCase() &&
-        (e.subject || '') === (slot.subject || '') &&
-        (e.start || '') === (slot.startTime || '') &&
-        (e.end || '') === (slot.endTime || '')
-    )
-    // Staff: only the teacher assigned to this period in the timetable can take attendance
+    const entries = (timetable?.entries as TimetableEntry[]) || []
+
     if (session.user.role === 'staff') {
-      if (!slotEntry) {
-        return NextResponse.json(
-          { error: 'This period is not in the class timetable.' },
-          { status: 403 }
-        )
-      }
-      if (slotEntry.staffId && session.user.id !== slotEntry.staffId) {
-        return NextResponse.json(
-          { error: 'Only the staff assigned to this period can take attendance for it.' },
-          { status: 403 }
-        )
+      const perm = await staffMayRecordAttendance({
+        userId: session.user.id,
+        role: session.user.role,
+        classId,
+        dateStr,
+        slot,
+        entries,
+      })
+      if (!perm.ok) {
+        return NextResponse.json({ error: perm.error }, { status: 403 })
       }
     }
 

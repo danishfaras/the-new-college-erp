@@ -20,6 +20,9 @@ model User {
   fees          Fee[]
   auditLogs     AuditLog[] @relation("AuditActor")
   notifications Notification[]
+  coverFromStaff    CoverRequest[] @relation("CoverFromStaff")
+  coverToStaff      CoverRequest[] @relation("CoverToStaff")
+  coverRequestedBy  CoverRequest[] @relation("CoverRequestedBy")
 }
 
 model Profile {
@@ -42,7 +45,34 @@ model Class {
   timetables  Timetable[]
   exams       Exam[]
   attendance  Attendance[]
+  coverRequests CoverRequest[]
   createdAt   DateTime @default(now())
+}
+
+// One-off period cover: colleague requests; assigned teacher accepts → substitute may take attendance.
+model CoverRequest {
+  id              String   @id @map("_id") @default(auto()) @db.ObjectId
+  classId         String   @db.ObjectId
+  class           Class    @relation(fields: [classId], references: [id])
+  date            DateTime // teaching date (start of day UTC)
+  day             String   // weekday label matching timetable, e.g. Monday
+  subject         String
+  startTime       String
+  endTime         String
+  fromStaffId     String   @db.ObjectId // timetable teacher (must accept)
+  toStaffId       String   @db.ObjectId // colleague who will cover
+  requestedById   String   @db.ObjectId // usually toStaffId (volunteer)
+  status          String   @default("pending") // pending | accepted | rejected | cancelled
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  fromStaff       User     @relation("CoverFromStaff", fields: [fromStaffId], references: [id])
+  toStaff         User     @relation("CoverToStaff", fields: [toStaffId], references: [id])
+  requestedBy     User     @relation("CoverRequestedBy", fields: [requestedById], references: [id])
+
+  @@index([classId, date])
+  @@index([fromStaffId, status])
+  @@index([toStaffId, status])
 }
 
 model Timetable {

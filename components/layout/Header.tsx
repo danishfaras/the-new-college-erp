@@ -91,6 +91,7 @@ export function Header() {
                 <>
                   <Link href="/admin/users" className={navLink('/admin/users')}>Users</Link>
                   <Link href="/admin/classes" className={navLink('/admin/classes')}>Classes</Link>
+                  <Link href="/admin/coverage" className={navLink('/admin/coverage')}>Cover requests</Link>
                   <Link href="/admin/audit" className={navLink('/admin/audit')}>Audit Logs</Link>
                 </>
               )}
@@ -105,6 +106,7 @@ export function Header() {
               {session.user.role === 'staff' && (
                 <>
                   <Link href="/staff/classes" className={navLink('/staff/classes')}>Classes</Link>
+                  <Link href="/staff/coverage" className={navLink('/staff/coverage')}>Cover requests</Link>
                   <Link href="/staff/timetable" className={navLink('/staff/timetable')}>Timetable</Link>
                   <Link href="/staff/attendance" className={navLink('/staff/attendance')}>Attendance</Link>
                   <Link href="/staff/my-attendance" className={navLink('/staff/my-attendance')}>My Attendance</Link>

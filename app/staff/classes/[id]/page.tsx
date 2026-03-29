@@ -77,26 +77,46 @@ export default function StaffClassDetailPage() {
     },
   })
 
-  // Today's periods from timetable (based on selected date)
+  const { data: eligibleSlotsData, isLoading: eligibleSlotsLoading } = useQuery({
+    queryKey: ['eligible-slots', classId, attendanceDate, action],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/attendance/${classId}/eligible-slots?date=${encodeURIComponent(attendanceDate)}`
+      )
+      if (!res.ok) return null
+      return res.json()
+    },
+    enabled: action === 'take-attendance' && !!attendanceDate && !!classId,
+  })
+
   const timetableEntries = (timetableData?.timetable?.entries as any[]) || []
   const dayName = attendanceDate
     ? new Date(attendanceDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' })
     : ''
-  // Only show periods assigned to this staff (admin sees all)
-  const todaySlots = dayName
-    ? timetableEntries
-        .filter((e: any) => e.day?.toLowerCase() === dayName.toLowerCase())
-        .filter(
-          (e: any) =>
-            session?.user?.role === 'admin' || !e.staffId || e.staffId === session?.user?.id
-        )
-        .map((e: any) => ({
-          subject: e.subject || 'Period',
-          start: e.start || '',
-          end: e.end || '',
-          day: e.day || dayName,
-        }))
-    : []
+
+  let todaySlots: { subject: string; start: string; end: string; day: string; reason?: string }[] = []
+  if (action === 'take-attendance') {
+    todaySlots = (eligibleSlotsData?.slots as any[] | undefined)?.map((s: any) => ({
+      subject: s.subject,
+      start: s.start,
+      end: s.end,
+      day: s.day,
+      reason: s.reason,
+    })) || []
+  } else if (dayName) {
+    todaySlots = timetableEntries
+      .filter((e: any) => e.day?.toLowerCase() === dayName.toLowerCase())
+      .filter(
+        (e: any) =>
+          session?.user?.role === 'admin' || !e.staffId || e.staffId === session?.user?.id
+      )
+      .map((e: any) => ({
+        subject: e.subject || 'Period',
+        start: e.start || '',
+        end: e.end || '',
+        day: e.day || dayName,
+      }))
+  }
   // Reset selected slot when date or timetable changes; clear if slot no longer in list
   useEffect(() => {
     if (!selectedSlot) return
@@ -147,6 +167,7 @@ export default function StaffClassDetailPage() {
 
       if (res.ok) {
         queryClient.invalidateQueries({ queryKey: ['attendance', classId] })
+        queryClient.invalidateQueries({ queryKey: ['eligible-slots', classId] })
         setAttendanceRecords({})
         setSelectedSlot(null)
         alert('Attendance recorded successfully for ' + selectedSlot.subject + '!')
@@ -214,7 +235,11 @@ export default function StaffClassDetailPage() {
             {action === 'take-attendance' && (
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm shadow-2xl mb-8 p-6">
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">Take Attendance (per period)</h2>
-                <p className="text-slate-500 text-sm mb-6">Select date and period, then mark students for that class slot.</p>
+                <p className="text-slate-500 text-sm mb-6">
+                  Select date and period, then mark students for that class slot. You can take attendance for your
+                  assigned periods, accepted cover periods, or the period immediately before one you teach next
+                  (if not already recorded).
+                </p>
                 <form onSubmit={handleSubmitAttendance} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -241,20 +266,36 @@ export default function StaffClassDetailPage() {
                         required
                       >
                         <option value="">Select period</option>
-                        {todaySlots.map((slot, idx) => {
+                        {todaySlots.map((slot: any, idx: number) => {
                           const value = `${slot.subject}|${slot.start}|${slot.end}|${slot.day}`
                           const alreadyTaken = (attendanceData?.attendance || []).some(
                             (a: any) => a.subject === slot.subject && a.startTime === slot.start && a.endTime === slot.end && new Date(a.date).toISOString().slice(0, 10) === attendanceDate
                           )
+                          const reasonLabel =
+                            slot.reason === 'previous-of-next'
+                              ? ' — previous period (you teach next)'
+                              : slot.reason === 'cover'
+                                ? ' — cover'
+                                : slot.reason === 'assigned'
+                                  ? ''
+                                  : ''
                           return (
                             <option key={idx} value={value} disabled={alreadyTaken}>
-                              {slot.subject} ({slot.start}–{slot.end}) {alreadyTaken ? '— taken' : ''}
+                              {slot.subject} ({slot.start}–{slot.end}){reasonLabel}
+                              {alreadyTaken ? ' — taken' : ''}
                             </option>
                           )
                         })}
                       </select>
-                      {dayName && todaySlots.length === 0 && (
-                        <p className="text-amber-600 text-sm mt-1">No slots for {dayName}. Add timetable entries first.</p>
+                      {action === 'take-attendance' && attendanceDate && eligibleSlotsLoading && (
+                        <p className="text-slate-500 text-sm mt-1">Loading eligible periods…</p>
+                      )}
+                      {dayName && !eligibleSlotsLoading && todaySlots.length === 0 && (
+                        <p className="text-amber-600 text-sm mt-1">
+                          {action === 'take-attendance'
+                            ? `No periods you can mark for ${dayName} (check timetable, cover, or next-period rule).`
+                            : `No slots for ${dayName}. Add timetable entries first.`}
+                        </p>
                       )}
                     </div>
                   </div>

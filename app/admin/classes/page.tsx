@@ -266,7 +266,7 @@ setFormData({ name: '', code: '', department: '', staffIds: [], studentIds: [] }
                     onClick={() => {
                       setShowCreateModal(false)
                       setEditingClass(null)
-                      setFormData({ name: '', code: '', department: '', staffIds: [] })
+                      setFormData({ name: '', code: '', department: '', staffIds: [], studentIds: [] })
                     }}
                     className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-all duration-200"
                   >
