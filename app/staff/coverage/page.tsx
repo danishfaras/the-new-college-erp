@@ -301,12 +301,173 @@ function StaffCoveragePageInner() {
       <Header />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Class cover & swaps</h1>
-        <p className="text-slate-600 mb-8">
+        <p className="text-slate-600 mb-6">
           <strong>Open timetable slot</strong> (no teacher): you get approved immediately. If you already teach
           another class at the same time, submit a <strong>parallel swap</strong> (you take this period; the other
           teacher takes one of your same-time periods). <strong>Release</strong> your period so others can claim it
           (you confirm pickup in Inbox).
         </p>
+
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">Manage Coverage Requests</h2>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+          <h3 className="text-md font-medium text-slate-900 mb-4">Select Class and Date</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Class</label>
+              <select
+                value={offerClassId}
+                onChange={(e) => {
+                  setOfferClassId(e.target.value)
+                  setOfferSlotKey('')
+                  setReleaseSlotKey('')
+                  setConflictPayload(null)
+                }}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+              >
+                <option value="">Select class</option>
+                {myClasses.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.code}) — Staff: {formatStaffList(c.staff)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Date</label>
+              <input
+                type="date"
+                value={offerDate}
+                onChange={(e) => {
+                  setOfferDate(e.target.value)
+                  setOfferSlotKey('')
+                  setReleaseSlotKey('')
+                  setConflictPayload(null)
+                }}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Request Coverage</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              Take an open slot or cover for another teacher. Auto-approved for open slots.
+            </p>
+            <form onSubmit={handleOfferCover} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Period (another teacher or open slot)
+                </label>
+                <select
+                  value={offerSlotKey}
+                  onChange={(e) => {
+                    setOfferSlotKey(e.target.value)
+                    setConflictPayload(null)
+                    setSwapConflictKey('')
+                  }}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  required
+                  disabled={!offerClassId || !offerDate}
+                >
+                  <option value="">Select period</option>
+                  {slotsToTake.map((s: any, i: number) => {
+                    const sid = s.staffId ? String(s.staffId).trim() : ''
+                    const teacherLabel = sid
+                      ? staffNameById.get(sid) || `Teacher (${sid.slice(-6)})`
+                      : 'Open slot — auto-approved'
+                    return (
+                      <option key={i} value={`${s.subject}|${s.start}|${s.end}|${s.day || dayName}`}>
+                        {s.subject} ({s.start}–{s.end}) — {teacherLabel}
+                      </option>
+                    )
+                  })}
+                </select>
+                {offerClassId && offerDate && slotsToTake.length === 0 && (
+                  <p className="text-sm text-amber-600 mt-1">No periods to take on {dayName} in this timetable.</p>
+                )}
+              </div>
+              {conflictPayload && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
+                  <p className="text-sm text-amber-900 font-medium">{conflictPayload.message}</p>
+                  <p className="text-sm text-amber-800">Choose which of your same-time periods you offer in exchange:</p>
+                  <select
+                    value={swapConflictKey}
+                    onChange={(e) => setSwapConflictKey(e.target.value)}
+                    className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm"
+                  >
+                    {conflictPayload.conflicts.map((c, i) => (
+                      <option
+                        key={i}
+                        value={`${c.classId}|${c.subject}|${c.start}|${c.end}|${c.day}`}
+                      >
+                        {c.className}: {c.subject} ({c.start}–{c.end})
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConflictPayload(null)
+                      setSwapConflictKey('')
+                    }}
+                    className="text-sm text-amber-900 underline"
+                  >
+                    Cancel swap mode
+                  </button>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="submit"
+                  disabled={createMutation.isPending || !offerClassId || !offerDate}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium disabled:opacity-50"
+                >
+                  {createMutation.isPending
+                    ? 'Sending…'
+                    : conflictPayload
+                      ? 'Send swap request'
+                      : 'Send cover / take open slot'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Release My Period</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              Cancel your commitment for a slot; colleagues can claim it. You approve claims in Inbox.
+            </p>
+            <form onSubmit={handleRelease} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">My period this day</label>
+                <select
+                  value={releaseSlotKey}
+                  onChange={(e) => setReleaseSlotKey(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  required
+                  disabled={!offerClassId || !offerDate}
+                >
+                  <option value="">Select period</option>
+                  {mySlotsToRelease.map((s: any, i: number) => (
+                    <option key={i} value={`${s.subject}|${s.start}|${s.end}|${s.day || dayName}`}>
+                      {s.subject} ({s.start}–{s.end})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="submit"
+                disabled={releaseMutation.isPending || !offerClassId || !offerDate}
+                className="px-4 py-2 bg-slate-800 text-white rounded-lg font-medium disabled:opacity-50"
+              >
+                {releaseMutation.isPending ? 'Releasing…' : 'Release for pickup'}
+              </button>
+            </form>
+          </div>
+        </div>
 
         <div className="flex flex-wrap gap-2 mb-8">
           <a
@@ -341,159 +502,6 @@ function StaffCoveragePageInner() {
           >
             All (mine)
           </a>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Take period / cover / swap</h2>
-          <form onSubmit={handleOfferCover} className="space-y-4 max-w-lg">
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Class</label>
-              <select
-                value={offerClassId}
-                onChange={(e) => {
-                  setOfferClassId(e.target.value)
-                  setOfferSlotKey('')
-                  setReleaseSlotKey('')
-                  setConflictPayload(null)
-                }}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                required
-              >
-                <option value="">Select class</option>
-                {myClasses.map((c: any) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.code}) — Staff: {formatStaffList(c.staff)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Date</label>
-              <input
-                type="date"
-                value={offerDate}
-                onChange={(e) => {
-                  setOfferDate(e.target.value)
-                  setOfferSlotKey('')
-                  setReleaseSlotKey('')
-                  setConflictPayload(null)
-                }}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">
-                Period (another teacher or open slot)
-              </label>
-              <select
-                value={offerSlotKey}
-                onChange={(e) => {
-                  setOfferSlotKey(e.target.value)
-                  setConflictPayload(null)
-                  setSwapConflictKey('')
-                }}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                required
-                disabled={!offerClassId || !offerDate}
-              >
-                <option value="">Select period</option>
-                {slotsToTake.map((s: any, i: number) => {
-                  const sid = s.staffId ? String(s.staffId).trim() : ''
-                  const teacherLabel = sid
-                    ? staffNameById.get(sid) || `Teacher (${sid.slice(-6)})`
-                    : 'Open slot — auto-approved'
-                  return (
-                    <option key={i} value={`${s.subject}|${s.start}|${s.end}|${s.day || dayName}`}>
-                      {s.subject} ({s.start}–{s.end}) — {teacherLabel}
-                    </option>
-                  )
-                })}
-              </select>
-              {offerClassId && offerDate && slotsToTake.length === 0 && (
-                <p className="text-sm text-amber-600 mt-1">No periods to take on {dayName} in this timetable.</p>
-              )}
-            </div>
-
-            {conflictPayload && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
-                <p className="text-sm text-amber-900 font-medium">{conflictPayload.message}</p>
-                <p className="text-sm text-amber-800">Choose which of your same-time periods you offer in exchange:</p>
-                <select
-                  value={swapConflictKey}
-                  onChange={(e) => setSwapConflictKey(e.target.value)}
-                  className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm"
-                >
-                  {conflictPayload.conflicts.map((c, i) => (
-                    <option
-                      key={i}
-                      value={`${c.classId}|${c.subject}|${c.start}|${c.end}|${c.day}`}
-                    >
-                      {c.className}: {c.subject} ({c.start}–{c.end})
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setConflictPayload(null)
-                    setSwapConflictKey('')
-                  }}
-                  className="text-sm text-amber-900 underline"
-                >
-                  Cancel swap mode
-                </button>
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="submit"
-                disabled={createMutation.isPending}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium disabled:opacity-50"
-              >
-                {createMutation.isPending
-                  ? 'Sending…'
-                  : conflictPayload
-                    ? 'Send swap request'
-                    : 'Send cover / take open slot'}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-10">
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">Release my period</h2>
-          <p className="text-sm text-slate-600 mb-4">
-            Cancels your commitment for that slot on the chosen date; colleagues can claim it under Class (pending).
-            You approve the claim in Inbox.
-          </p>
-          <form onSubmit={handleRelease} className="space-y-4 max-w-lg">
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">My period this day</label>
-              <select
-                value={releaseSlotKey}
-                onChange={(e) => setReleaseSlotKey(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                required
-                disabled={!offerClassId || !offerDate}
-              >
-                <option value="">Select period</option>
-                {mySlotsToRelease.map((s: any, i: number) => (
-                  <option key={i} value={`${s.subject}|${s.start}|${s.end}|${s.day || dayName}`}>
-                    {s.subject} ({s.start}–{s.end})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="submit"
-              disabled={releaseMutation.isPending}
-              className="px-4 py-2 bg-slate-800 text-white rounded-lg font-medium disabled:opacity-50"
-            >
-              {releaseMutation.isPending ? 'Releasing…' : 'Release for pickup'}
-            </button>
-          </form>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
