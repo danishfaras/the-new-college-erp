@@ -45,11 +45,12 @@ model Class {
   timetables  Timetable[]
   exams       Exam[]
   attendance  Attendance[]
-  coverRequests CoverRequest[]
+  coverRequests     CoverRequest[]
+  swapCoverRequests CoverRequest[] @relation("SwapCoverClass")
   createdAt   DateTime @default(now())
 }
 
-// One-off period cover: colleague requests; assigned teacher accepts → substitute may take attendance.
+// Cover / swap / release / pickup (open slot). Teacher accepts except autoApproved empty-slot assignments.
 model CoverRequest {
   id              String   @id @map("_id") @default(auto()) @db.ObjectId
   classId         String   @db.ObjectId
@@ -59,20 +60,30 @@ model CoverRequest {
   subject         String
   startTime       String
   endTime         String
-  fromStaffId     String   @db.ObjectId // timetable teacher (must accept)
-  toStaffId       String   @db.ObjectId // colleague who will cover
-  requestedById   String   @db.ObjectId // usually toStaffId (volunteer)
-  status          String   @default("pending") // pending | accepted | rejected | cancelled
+  fromStaffId     String?  @db.ObjectId // assigned teacher to approve cover; null = empty timetable slot
+  toStaffId       String?  @db.ObjectId // volunteer / taker; null while release is open
+  requestedById   String   @db.ObjectId // who created the row
+  status          String   @default("pending") // pending | accepted | rejected | cancelled | open
+  kind            String   @default("cover") // cover | swap | release | pickup
+  swapClassId     String?  @db.ObjectId
+  swapClass       Class?   @relation("SwapCoverClass", fields: [swapClassId], references: [id])
+  swapSubject     String?
+  swapStartTime   String?
+  swapEndTime     String?
+  swapDay         String?
+  autoApproved    Boolean  @default(false)
+  linkedRequestId String?  @db.ObjectId
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  fromStaff       User     @relation("CoverFromStaff", fields: [fromStaffId], references: [id])
-  toStaff         User     @relation("CoverToStaff", fields: [toStaffId], references: [id])
+  fromStaff       User?    @relation("CoverFromStaff", fields: [fromStaffId], references: [id])
+  toStaff         User?    @relation("CoverToStaff", fields: [toStaffId], references: [id])
   requestedBy     User     @relation("CoverRequestedBy", fields: [requestedById], references: [id])
 
   @@index([classId, date])
   @@index([fromStaffId, status])
   @@index([toStaffId, status])
+  @@index([status, kind])
 }
 
 model Timetable {

@@ -7,15 +7,47 @@ import { useSearchParams } from 'next/navigation'
 import { useMemo, useState, useEffect, Suspense } from 'react'
 import { toAttendanceDay } from '@/lib/timetable-slot-utils'
 
+function formatStaffList(staff: { name?: string | null; email?: string | null }[] | undefined) {
+  if (!staff?.length) return 'No staff listed'
+  return staff
+    .map((s) => s.name?.trim() || s.email || 'Staff')
+    .filter(Boolean)
+    .join(', ')
+}
+
+type ConflictItem = {
+  classId: string
+  className: string
+  classCode: string
+  subject: string
+  start: string
+  end: string
+  day: string
+}
+
 function StaffCoveragePageInner() {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
-  const box = searchParams.get('box') || 'inbox'
+  const boxParam = searchParams.get('box')
+  const boxMode: 'inbox' | 'outgoing' | 'class' | 'all' =
+    boxParam === 'outgoing'
+      ? 'outgoing'
+      : boxParam === 'class'
+        ? 'class'
+        : boxParam === 'all'
+          ? 'all'
+          : 'inbox'
   const queryClient = useQueryClient()
 
   const [offerClassId, setOfferClassId] = useState('')
   const [offerDate, setOfferDate] = useState('')
   const [offerSlotKey, setOfferSlotKey] = useState('')
+  const [releaseSlotKey, setReleaseSlotKey] = useState('')
+  const [conflictPayload, setConflictPayload] = useState<{
+    conflicts: ConflictItem[]
+    message: string
+  } | null>(null)
+  const [swapConflictKey, setSwapConflictKey] = useState('')
 
   useEffect(() => {
     setOfferDate(new Date().toISOString().split('T')[0] || '')
@@ -51,43 +83,136 @@ function StaffCoveragePageInner() {
     : ''
   const expectedDay = offerDate ? toAttendanceDay(offerDate) : ''
 
-  const coverableSlots = useMemo(() => {
+  const uid = session?.user?.id
+
+  const slotsToTake = useMemo(() => {
     const entries = (timetableData?.timetable?.entries as any[]) || []
-    const uid = session?.user?.id
+    if (!dayName || !uid) return []
+    return entries.filter((e: any) => e.day?.toLowerCase() === dayName.toLowerCase()).filter((e: any) => {
+      const sid = String(e.staffId || '').trim()
+      if (!sid) return true
+      return sid !== String(uid).trim()
+    })
+  }, [timetableData, dayName, uid])
+
+  const mySlotsToRelease = useMemo(() => {
+    const entries = (timetableData?.timetable?.entries as any[]) || []
     if (!dayName || !uid) return []
     return entries.filter(
       (e: any) =>
         e.day?.toLowerCase() === dayName.toLowerCase() &&
-        e.staffId &&
-        e.staffId !== uid
+        String(e.staffId || '').trim() === String(uid).trim()
     )
-  }, [timetableData, dayName, session?.user?.id])
+  }, [timetableData, dayName, uid])
+
+  const selectedClass = useMemo(
+    () => myClasses.find((c: any) => c.id === offerClassId),
+    [myClasses, offerClassId]
+  )
+
+  const staffNameById = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const s of selectedClass?.staff || []) {
+      m.set(s.id, (s.name && s.name.trim()) || s.email || 'Staff')
+    }
+    return m
+  }, [selectedClass])
 
   const { data: coverageData, isLoading: coverageLoading } = useQuery({
-    queryKey: ['coverage', box],
+    queryKey: ['coverage', boxMode],
     queryFn: async () => {
-      const q = box === 'inbox' ? 'box=inbox' : box === 'outgoing' ? 'box=outgoing' : ''
+      const q =
+        boxMode === 'inbox'
+          ? 'box=inbox'
+          : boxMode === 'outgoing'
+            ? 'box=outgoing'
+            : boxMode === 'class'
+              ? 'box=class'
+              : 'box=all'
       const res = await fetch(`/api/coverage?${q}`)
       if (!res.ok) return null
       return res.json()
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   })
 
+  const invalidateCoverage = () => queryClient.invalidateQueries({ queryKey: ['coverage'] })
+
   const createMutation = useMutation({
-    mutationFn: async (body: Record<string, string>) => {
+    mutationFn: async (body: Record<string, unknown>) => {
       const res = await fetch('/api/coverage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
       const data = await res.json().catch(() => ({}))
+      if (res.status === 409 && data.code === 'SCHEDULE_CONFLICT') {
+        const err = new Error('CONFLICT') as Error & { conflictData?: typeof data }
+        err.conflictData = data
+        throw err
+      }
       if (!res.ok) throw new Error(data.error || 'Request failed')
       return data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coverage'] })
+    onSuccess: (data: any) => {
+      invalidateCoverage()
       setOfferSlotKey('')
-      alert('Cover request sent. The assigned teacher will be notified.')
+      setConflictPayload(null)
+      setSwapConflictKey('')
+      if (data.autoApproved) {
+        alert('Open period assigned to you immediately. You can take attendance for that slot.')
+      } else {
+        alert('Request sent. Staff on the class have been notified.')
+      }
+    },
+    onError: (e: Error & { conflictData?: { conflicts?: ConflictItem[]; message?: string } }) => {
+      if (e.message === 'CONFLICT' && e.conflictData?.conflicts?.length) {
+        setConflictPayload({
+          conflicts: e.conflictData.conflicts,
+          message: e.conflictData.message || 'Schedule conflict.',
+        })
+        const c = e.conflictData.conflicts[0]!
+        setSwapConflictKey(`${c.classId}|${c.subject}|${c.start}|${c.end}|${c.day}`)
+        return
+      }
+      alert(e.message)
+    },
+  })
+
+  const releaseMutation = useMutation({
+    mutationFn: async (body: Record<string, string>) => {
+      const res = await fetch('/api/coverage/release', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Failed to release')
+      return data
+    },
+    onSuccess: () => {
+      invalidateCoverage()
+      setReleaseSlotKey('')
+      alert('Period is open for colleagues to claim (Class pending).')
+    },
+    onError: (e: Error) => alert(e.message),
+  })
+
+  const claimMutation = useMutation({
+    mutationFn: async (releaseId: string) => {
+      const res = await fetch('/api/coverage/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ releaseId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Claim failed')
+      return data
+    },
+    onSuccess: () => {
+      invalidateCoverage()
+      alert('Pickup sent. The staff who released it must confirm in their Inbox.')
     },
     onError: (e: Error) => alert(e.message),
   })
@@ -103,9 +228,14 @@ function StaffCoveragePageInner() {
       if (!res.ok) throw new Error(data.error || 'Update failed')
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['coverage'] }),
+    onSuccess: () => invalidateCoverage(),
     onError: (e: Error) => alert(e.message),
   })
+
+  const parseSlotKey = (key: string) => {
+    const [subject, start, end, day] = key.split('|')
+    return { subject, start, end, day }
+  }
 
   const handleOfferCover = (e: React.FormEvent) => {
     e.preventDefault()
@@ -113,12 +243,48 @@ function StaffCoveragePageInner() {
       alert('Choose class, date, and period.')
       return
     }
-    const [subject, start, end, day] = offerSlotKey.split('|')
+    const { subject, start, end, day } = parseSlotKey(offerSlotKey)
     if (day && expectedDay && day.toLowerCase() !== expectedDay.toLowerCase()) {
       alert('Selected period does not match the weekday of the date.')
       return
     }
-    createMutation.mutate({
+
+    const base = {
+      classId: offerClassId,
+      date: offerDate,
+      day: day || expectedDay,
+      subject,
+      startTime: start,
+      endTime: end,
+    }
+
+    if (conflictPayload && swapConflictKey) {
+      const [scId, scSubj, scStart, scEnd, scDay] = swapConflictKey.split('|')
+      createMutation.mutate({
+        ...base,
+        kind: 'swap',
+        swapOffer: {
+          classId: scId,
+          subject: scSubj,
+          startTime: scStart,
+          endTime: scEnd,
+          day: scDay,
+        },
+      })
+      return
+    }
+
+    createMutation.mutate({ ...base, kind: 'cover' })
+  }
+
+  const handleRelease = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!offerClassId || !offerDate || !releaseSlotKey) {
+      alert('Choose class, date, and period to release.')
+      return
+    }
+    const { subject, start, end, day } = parseSlotKey(releaseSlotKey)
+    releaseMutation.mutate({
       classId: offerClassId,
       date: offerDate,
       day: day || expectedDay,
@@ -134,43 +300,51 @@ function StaffCoveragePageInner() {
     <div className="min-h-screen bg-slate-50">
       <Header />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Class cover</h1>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">Class cover & swaps</h1>
         <p className="text-slate-600 mb-8">
-          Offer to cover a colleague&apos;s period; they accept in their inbox. After acceptance, you can take
-          attendance for that slot.
+          <strong>Open timetable slot</strong> (no teacher): you get approved immediately. If you already teach
+          another class at the same time, submit a <strong>parallel swap</strong> (you take this period; the other
+          teacher takes one of your same-time periods). <strong>Release</strong> your period so others can claim it
+          (you confirm pickup in Inbox).
         </p>
 
-        <div className="flex gap-2 mb-8">
+        <div className="flex flex-wrap gap-2 mb-8">
           <a
             href="/staff/coverage?box=inbox"
             className={`px-4 py-2 rounded-lg text-sm font-medium ${
-              box === 'inbox' ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-700'
+              boxMode === 'inbox' ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-700'
             }`}
           >
-            Inbox (to approve)
+            Inbox (approve)
           </a>
           <a
             href="/staff/coverage?box=outgoing"
             className={`px-4 py-2 rounded-lg text-sm font-medium ${
-              box === 'outgoing' ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-700'
+              boxMode === 'outgoing' ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-700'
             }`}
           >
-            My requests
+            My offers / open releases
           </a>
           <a
-            href="/staff/coverage"
+            href="/staff/coverage?box=class"
             className={`px-4 py-2 rounded-lg text-sm font-medium ${
-              box !== 'inbox' && box !== 'outgoing'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white border border-slate-200 text-slate-700'
+              boxMode === 'class' ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-700'
             }`}
           >
-            All
+            Class (pending + open)
+          </a>
+          <a
+            href="/staff/coverage?box=all"
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              boxMode === 'all' ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-700'
+            }`}
+          >
+            All (mine)
           </a>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-10">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Offer cover</h2>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Take period / cover / swap</h2>
           <form onSubmit={handleOfferCover} className="space-y-4 max-w-lg">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">Class</label>
@@ -179,6 +353,8 @@ function StaffCoveragePageInner() {
                 onChange={(e) => {
                   setOfferClassId(e.target.value)
                   setOfferSlotKey('')
+                  setReleaseSlotKey('')
+                  setConflictPayload(null)
                 }}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                 required
@@ -186,7 +362,7 @@ function StaffCoveragePageInner() {
                 <option value="">Select class</option>
                 {myClasses.map((c: any) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.code})
+                    {c.name} ({c.code}) — Staff: {formatStaffList(c.staff)}
                   </option>
                 ))}
               </select>
@@ -199,99 +375,240 @@ function StaffCoveragePageInner() {
                 onChange={(e) => {
                   setOfferDate(e.target.value)
                   setOfferSlotKey('')
+                  setReleaseSlotKey('')
+                  setConflictPayload(null)
                 }}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Their period (not yours)</label>
+              <label className="block text-sm font-medium text-slate-600 mb-1">
+                Period (another teacher or open slot)
+              </label>
               <select
                 value={offerSlotKey}
-                onChange={(e) => setOfferSlotKey(e.target.value)}
+                onChange={(e) => {
+                  setOfferSlotKey(e.target.value)
+                  setConflictPayload(null)
+                  setSwapConflictKey('')
+                }}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                 required
                 disabled={!offerClassId || !offerDate}
               >
                 <option value="">Select period</option>
-                {coverableSlots.map((s: any, i: number) => (
-                  <option
-                    key={i}
-                    value={`${s.subject}|${s.start}|${s.end}|${s.day || dayName}`}
-                  >
+                {slotsToTake.map((s: any, i: number) => {
+                  const sid = s.staffId ? String(s.staffId).trim() : ''
+                  const teacherLabel = sid
+                    ? staffNameById.get(sid) || `Teacher (${sid.slice(-6)})`
+                    : 'Open slot — auto-approved'
+                  return (
+                    <option key={i} value={`${s.subject}|${s.start}|${s.end}|${s.day || dayName}`}>
+                      {s.subject} ({s.start}–{s.end}) — {teacherLabel}
+                    </option>
+                  )
+                })}
+              </select>
+              {offerClassId && offerDate && slotsToTake.length === 0 && (
+                <p className="text-sm text-amber-600 mt-1">No periods to take on {dayName} in this timetable.</p>
+              )}
+            </div>
+
+            {conflictPayload && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
+                <p className="text-sm text-amber-900 font-medium">{conflictPayload.message}</p>
+                <p className="text-sm text-amber-800">Choose which of your same-time periods you offer in exchange:</p>
+                <select
+                  value={swapConflictKey}
+                  onChange={(e) => setSwapConflictKey(e.target.value)}
+                  className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm"
+                >
+                  {conflictPayload.conflicts.map((c, i) => (
+                    <option
+                      key={i}
+                      value={`${c.classId}|${c.subject}|${c.start}|${c.end}|${c.day}`}
+                    >
+                      {c.className}: {c.subject} ({c.start}–{c.end})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConflictPayload(null)
+                    setSwapConflictKey('')
+                  }}
+                  className="text-sm text-amber-900 underline"
+                >
+                  Cancel swap mode
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium disabled:opacity-50"
+              >
+                {createMutation.isPending
+                  ? 'Sending…'
+                  : conflictPayload
+                    ? 'Send swap request'
+                    : 'Send cover / take open slot'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-10">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">Release my period</h2>
+          <p className="text-sm text-slate-600 mb-4">
+            Cancels your commitment for that slot on the chosen date; colleagues can claim it under Class (pending).
+            You approve the claim in Inbox.
+          </p>
+          <form onSubmit={handleRelease} className="space-y-4 max-w-lg">
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">My period this day</label>
+              <select
+                value={releaseSlotKey}
+                onChange={(e) => setReleaseSlotKey(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                required
+                disabled={!offerClassId || !offerDate}
+              >
+                <option value="">Select period</option>
+                {mySlotsToRelease.map((s: any, i: number) => (
+                  <option key={i} value={`${s.subject}|${s.start}|${s.end}|${s.day || dayName}`}>
                     {s.subject} ({s.start}–{s.end})
                   </option>
                 ))}
               </select>
-              {offerClassId && offerDate && coverableSlots.length === 0 && (
-                <p className="text-sm text-amber-600 mt-1">
-                  No other teacher&apos;s slots on {dayName} in this timetable.
-                </p>
-              )}
             </div>
             <button
               type="submit"
-              disabled={createMutation.isPending}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium disabled:opacity-50"
+              disabled={releaseMutation.isPending}
+              className="px-4 py-2 bg-slate-800 text-white rounded-lg font-medium disabled:opacity-50"
             >
-              {createMutation.isPending ? 'Sending…' : 'Send cover request'}
+              {releaseMutation.isPending ? 'Releasing…' : 'Release for pickup'}
             </button>
           </form>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          {boxMode === 'class' && (
+            <p className="text-sm text-slate-600 mb-3">
+              Pending requests, open releases, and pickups for classes you are on. <strong>Claim</strong> open
+              releases here. Only the assigned teacher (or releaser for pickups) can accept in Inbox.
+            </p>
+          )}
           <h2 className="text-lg font-semibold text-slate-900 mb-4">
-            {box === 'inbox' ? 'Pending — your periods' : box === 'outgoing' ? 'Your pending offers' : 'Recent'}
+            {boxMode === 'inbox'
+              ? 'Needs your approval'
+              : boxMode === 'outgoing'
+                ? 'Your offers & open releases'
+                : boxMode === 'class'
+                  ? 'Class activity'
+                  : 'Everything involving you'}
           </h2>
           {coverageLoading ? (
             <p className="text-slate-500">Loading…</p>
           ) : requests.length === 0 ? (
-            <p className="text-slate-500">No requests.</p>
+            <p className="text-slate-500">No items.</p>
           ) : (
             <ul className="divide-y divide-slate-100">
               {requests.map((r: any) => (
                 <li key={r.id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
                     <p className="font-medium text-slate-900">
-                      {r.class?.name} — {r.subject} ({r.startTime}–{r.endTime})
+                      {r.class?.name} — {r.subject} ({r.startTime}–{r.endTime}){' '}
+                      <span className="text-xs font-normal text-slate-500">
+                        [{r.kind || 'cover'}] {r.status}
+                        {r.autoApproved ? ' · auto' : ''}
+                      </span>
                     </p>
+                    {r.kind === 'swap' && r.swapSubject && (
+                      <p className="text-sm text-slate-600">
+                        Swap offer: {r.swapSubject} ({r.swapStartTime}–{r.swapEndTime}) in{' '}
+                        {r.swapClass?.name || 'other class'}
+                      </p>
+                    )}
                     <p className="text-sm text-slate-500">
-                      {new Date(r.date).toLocaleDateString()} · From {r.fromStaff?.name || r.fromStaff?.email} → To{' '}
-                      {r.toStaff?.name || r.toStaff?.email} ·{' '}
-                      <span className="font-semibold text-slate-700">{r.status}</span>
+                      {new Date(r.date).toLocaleDateString()}
+                      {r.status === 'open' && r.kind === 'release' ? (
+                        <>
+                          {' '}
+                          · Released by {r.fromStaff?.name || r.fromStaff?.email || '—'}
+                        </>
+                      ) : (
+                        <>
+                          {' '}
+                          · Teacher: {r.fromStaff?.name || r.fromStaff?.email || '—'} · With:{' '}
+                          {r.toStaff?.name || r.toStaff?.email || '—'}
+                        </>
+                      )}
                     </p>
                   </div>
-                  {r.status === 'pending' && r.fromStaffId === session?.user?.id && (
-                    <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {r.status === 'open' && r.kind === 'release' && r.fromStaffId !== session?.user?.id && (
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm('Accept this cover?')) patchMutation.mutate({ id: r.id, action: 'accept' })
+                          if (confirm('Claim this period? The colleague who released it must confirm.')) {
+                            claimMutation.mutate(r.id)
+                          }
                         }}
-                        className="px-3 py-1.5 bg-emerald-600 text-white text-sm rounded-lg"
+                        className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg"
                       >
-                        Accept
+                        Claim
                       </button>
+                    )}
+                    {r.status === 'open' && r.kind === 'release' && r.fromStaffId === session?.user?.id && (
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm('Reject this cover offer?')) patchMutation.mutate({ id: r.id, action: 'reject' })
+                          if (confirm('Cancel this open release?')) patchMutation.mutate({ id: r.id, action: 'cancel' })
                         }}
                         className="px-3 py-1.5 bg-slate-100 text-slate-800 text-sm rounded-lg border border-slate-200"
                       >
-                        Reject
+                        Cancel release
                       </button>
-                    </div>
-                  )}
-                  {r.status === 'pending' && r.requestedById === session?.user?.id && r.fromStaffId !== session?.user?.id && (
-                    <button
-                      type="button"
-                      onClick={() => patchMutation.mutate({ id: r.id, action: 'cancel' })}
-                      className="px-3 py-1.5 text-sm text-slate-600 underline"
-                    >
-                      Cancel request
-                    </button>
-                  )}
+                    )}
+                    {r.status === 'pending' && r.fromStaffId === session?.user?.id && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('Accept?')) patchMutation.mutate({ id: r.id, action: 'accept' })
+                          }}
+                          className="px-3 py-1.5 bg-emerald-600 text-white text-sm rounded-lg"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('Decline?')) patchMutation.mutate({ id: r.id, action: 'reject' })
+                          }}
+                          className="px-3 py-1.5 bg-slate-100 text-slate-800 text-sm rounded-lg border border-slate-200"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    {r.status === 'pending' &&
+                      (r.requestedById === session?.user?.id || r.toStaffId === session?.user?.id) &&
+                      r.fromStaffId !== session?.user?.id && (
+                        <button
+                          type="button"
+                          onClick={() => patchMutation.mutate({ id: r.id, action: 'cancel' })}
+                          className="px-3 py-1.5 text-sm text-slate-600 underline"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                  </div>
                 </li>
               ))}
             </ul>
