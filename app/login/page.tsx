@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getSession, signIn, useSession } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
@@ -57,25 +57,16 @@ export default function LoginPage() {
         return
       }
 
-      router.refresh()
-      const session = await getSession()
-      const role = session?.user?.role || 'student'
-      switch (role) {
-        case 'admin':
-          router.push('/admin')
-          break
-        case 'staff':
-          router.push('/staff')
-          break
-        case 'student':
-          router.push('/student')
-          break
-        case 'accounts':
-          router.push('/accounts')
-          break
-        default:
-          router.push('/student')
+      // Full navigation so the new session cookie is always sent; client router + getSession()
+      // often leave you on /login because middleware still sees no JWT on the next request.
+      let next = '/'
+      if (typeof window !== 'undefined') {
+        const raw = new URLSearchParams(window.location.search).get('callbackUrl')
+        if (raw && raw.startsWith('/') && !raw.startsWith('//')) {
+          next = raw.split('?')[0] ?? '/'
+        }
       }
+      window.location.assign(next)
     } catch {
       setError('An error occurred. Please try again.')
     } finally {
