@@ -68,5 +68,7 @@ export const config = {
     '/api/audit/:path*',
     '/api/coverage',
     '/api/coverage/:path*',
+    '/api/reports',
+    '/api/reports/:path*',
   ],
 }

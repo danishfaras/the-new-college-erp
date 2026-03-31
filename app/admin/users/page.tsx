@@ -27,6 +27,15 @@ export default function AdminUsersPage() {
   const [staffForm, setStaffForm] = useState(emptyStaffForm)
   const [studentForm, setStudentForm] = useState(emptyStudentForm)
   const [createError, setCreateError] = useState('')
+  const [bulkKind, setBulkKind] = useState<'student' | 'staff'>('student')
+  const [bulkFile, setBulkFile] = useState<File | null>(null)
+  const [bulkResult, setBulkResult] = useState<{
+    message?: string
+    error?: string
+    createdCount?: number
+    errors?: { excelRow: number; email: string; message: string }[]
+  } | null>(null)
+  const [bulkUploading, setBulkUploading] = useState(false)
 
   // Fetch all users for stats
   const { data: allUsersData } = useQuery({
@@ -114,6 +123,31 @@ export default function AdminUsersPage() {
     },
     onError: (e: Error) => setCreateError(e.message),
   })
+
+  const handleBulkUpload = async () => {
+    if (!bulkFile) {
+      alert('Choose an Excel file first.')
+      return
+    }
+    setBulkUploading(true)
+    setBulkResult(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', bulkFile)
+      fd.append('kind', bulkKind)
+      const res = await fetch('/api/users/bulk/upload', { method: 'POST', body: fd })
+      const json = await res.json().catch(() => ({}))
+      setBulkResult(json)
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: ['users'] })
+        setBulkFile(null)
+      }
+    } catch {
+      setBulkResult({ message: 'Upload failed. Check your connection and try again.' })
+    } finally {
+      setBulkUploading(false)
+    }
+  }
 
   const handleApprove = async (userId: string) => {
     setApprovingUserId(userId)
@@ -215,6 +249,79 @@ export default function AdminUsersPage() {
           ))}
         </div>
 
+        <div className="bg-white rounded-lg border border-slate-200 p-6 mb-8 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 mb-1">Bulk import (Excel)</h2>
+          <p className="text-sm text-slate-600 mb-4">
+            Download the template, add rows on the <strong>Students</strong> or <strong>Staff</strong> sheet (keep
+            headers), save, then upload. Sample rows can be removed. New accounts are created as{' '}
+            <strong>approved</strong>.
+          </p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <a
+              href="/api/users/bulk/template?kind=student"
+              className="inline-flex items-center px-4 py-2 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm font-medium hover:bg-slate-100"
+            >
+              Download student template (.xlsx)
+            </a>
+            <a
+              href="/api/users/bulk/template?kind=staff"
+              className="inline-flex items-center px-4 py-2 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm font-medium hover:bg-slate-100"
+            >
+              Download staff template (.xlsx)
+            </a>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Import type</label>
+              <select
+                value={bulkKind}
+                onChange={(e) => setBulkKind(e.target.value as 'student' | 'staff')}
+                className="px-3 py-2 border border-slate-300 rounded-lg text-slate-900 text-sm bg-white"
+              >
+                <option value="student">Students</option>
+                <option value="staff">Staff / accounts</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Excel file</label>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
+                className="block text-sm text-slate-600"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleBulkUpload}
+              disabled={bulkUploading || !bulkFile}
+              className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 disabled:opacity-50"
+            >
+              {bulkUploading ? 'Uploading…' : 'Upload & import'}
+            </button>
+          </div>
+          {bulkResult && (
+            <div
+              className={`mt-4 rounded-lg border p-4 text-sm ${
+                bulkResult.errors?.length && bulkResult.createdCount === 0
+                  ? 'border-red-200 bg-red-50 text-red-900'
+                  : 'border-slate-200 bg-slate-50 text-slate-800'
+              }`}
+            >
+              <p className="font-medium mb-2">{bulkResult.message || bulkResult.error}</p>
+              {bulkResult.errors && bulkResult.errors.length > 0 && (
+                <ul className="list-disc pl-5 space-y-1 max-h-40 overflow-y-auto">
+                  {bulkResult.errors.map((err, i) => (
+                    <li key={i}>
+                      Row {err.excelRow} ({err.email}): {err.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Filters and Search */}
         <div className="bg-white rounded-lg border border-slate-200 p-6 mb-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -230,7 +337,7 @@ export default function AdminUsersPage() {
                 placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-12 pr-4 py-3 bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
+                className="block w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
               />
             </div>
 

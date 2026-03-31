@@ -68,11 +68,17 @@ export default function StaffAttendancePage() {
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <h1 className="text-4xl font-bold text-slate-900 mb-2">Attendance Management</h1>
             <p className="text-slate-500">Take and view attendance for your classes</p>
           </div>
+          <Link
+            href="/staff/reports"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors shrink-0"
+          >
+            Export reports (CSV)
+          </Link>
         </div>
 
         {/* Quick Actions */}
