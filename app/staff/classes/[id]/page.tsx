@@ -439,7 +439,7 @@ export default function StaffClassDetailPage() {
                       </a>
                     </div>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="erp-table-scroll">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-slate-200">
@@ -506,7 +506,7 @@ export default function StaffClassDetailPage() {
                     <h2 className="text-xl font-bold text-slate-900">Attendance History</h2>
                     <p className="text-sm text-slate-500 mt-1">All attendance records for this class</p>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="erp-table-scroll">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-slate-200">

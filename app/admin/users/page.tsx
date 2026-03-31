@@ -366,7 +366,7 @@ export default function AdminUsersPage() {
             </h2>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="erp-table-scroll">
             {filteredUsers.length > 0 ? (
               <table className="w-full">
                 <thead>

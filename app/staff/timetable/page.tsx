@@ -67,7 +67,7 @@ export default function StaffTimetablePage() {
           </div>
         ) : allEntries.length > 0 ? (
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm shadow-2xl overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="erp-table-scroll">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-200">

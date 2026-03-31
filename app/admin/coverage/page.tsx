@@ -43,6 +43,7 @@ export default function AdminCoveragePage() {
           <p className="text-slate-500">No pending requests.</p>
         ) : (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="erp-table-scroll">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
@@ -92,6 +93,7 @@ export default function AdminCoveragePage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </main>

@@ -134,7 +134,7 @@ export default function AdminClassTimetablePage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-x-auto">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm erp-table-scroll">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">

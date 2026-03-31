@@ -171,7 +171,7 @@ export default function StaffMyAttendancePage() {
             <h2 className="text-xl font-bold text-slate-900">Attendance History</h2>
             <p className="text-sm text-slate-500 mt-1">Your attendance records</p>
           </div>
-          <div className="overflow-x-auto">
+          <div className="erp-table-scroll">
             {attendanceRecords.length > 0 ? (
               <table className="w-full">
                 <thead>

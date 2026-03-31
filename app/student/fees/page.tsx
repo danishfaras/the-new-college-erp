@@ -135,7 +135,7 @@ export default function StudentFeesPage() {
                   <h2 className="text-xl font-bold text-slate-900">Paid Fees</h2>
                   <p className="text-sm text-slate-500 mt-1">Your completed payments</p>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="erp-table-scroll">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-slate-200">

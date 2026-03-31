@@ -134,7 +134,7 @@ export default function StaffAttendancePage() {
             <p className="text-sm text-slate-500 mt-1">All attendance records you've taken</p>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="erp-table-scroll">
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>

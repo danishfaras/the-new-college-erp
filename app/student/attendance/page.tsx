@@ -131,7 +131,7 @@ export default function StudentAttendancePage() {
               <h2 className="text-xl font-bold text-slate-900">Attendance History (by period)</h2>
               <p className="text-sm text-slate-500 mt-1">Your attendance per class period for the last 6 months</p>
             </div>
-            <div className="overflow-x-auto">
+            <div className="erp-table-scroll">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-200">

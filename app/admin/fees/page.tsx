@@ -175,7 +175,7 @@ export default function AdminFeesPage() {
             <h2 className="text-xl font-bold text-slate-900">Fee Invoices ({filteredFees.length})</h2>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="erp-table-scroll">
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
