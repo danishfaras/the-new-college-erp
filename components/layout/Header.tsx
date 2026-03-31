@@ -135,7 +135,7 @@ export function Header() {
     session.user.role === 'staff' ? '/staff/notifications' : null
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm pt-[env(safe-area-inset-top)]">
+    <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 shadow-sm shadow-slate-900/5 pt-[env(safe-area-inset-top)] supports-[backdrop-filter]:bg-white/75">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16 min-w-0 gap-2">
           <div className="flex items-center min-w-0 gap-2 sm:gap-8 flex-1">

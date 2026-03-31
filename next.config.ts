@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
+// Vercel uses its own output handling; standalone is for Docker (see Dockerfile)
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  ...(process.env.VERCEL ? {} : { output: "standalone" as const }),
   serverExternalPackages: ['@prisma/client', 'xlsx'],
   turbopack: {},
   experimental: {

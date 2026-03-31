@@ -11,6 +11,8 @@ const getPrisma = async () => {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Required on Vercel / reverse proxies so cookies and callbacks use the real host
+  trustHost: true,
   providers: [
     CredentialsProvider({
       name: 'Credentials',

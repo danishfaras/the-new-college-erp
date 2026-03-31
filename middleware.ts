@@ -1,74 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
+function dashboardPathForRole(role: string | undefined): string {
+  switch (role) {
+    case 'admin':
+      return '/admin'
+    case 'staff':
+      return '/staff'
+    case 'student':
+      return '/student'
+    case 'accounts':
+      return '/accounts'
+    default:
+      return '/login'
+  }
+}
+
+function json(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status })
+}
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
-  const token = await getToken({ 
-    req: request, 
-    secret: process.env.NEXTAUTH_SECRET 
+  const isApi = path.startsWith('/api/')
+
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
   })
 
-  // Allow login page and home page
   if (path === '/login' || path === '/') {
     return NextResponse.next()
   }
 
-  // If no token, redirect to login
   if (!token) {
+    if (isApi) {
+      return json('Unauthorized', 401)
+    }
     const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('callbackUrl', path)
     return NextResponse.redirect(loginUrl)
   }
 
-  // If user is not approved, redirect to pending page
-  if (!token.approved && !path.startsWith('/pending') && path !== '/api/auth/signout') {
+  const approved = token.approved as boolean
+  if (!approved && !path.startsWith('/pending') && path !== '/api/auth/signout') {
+    if (isApi) {
+      return json('Account pending approval', 403)
+    }
     return NextResponse.redirect(new URL('/pending', request.url))
   }
 
-  // Role-based route protection
   const role = token.role as string
 
-  // Admin-only routes
   if (path.startsWith('/admin') && role !== 'admin') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (isApi) {
+      return json('Forbidden', 403)
+    }
+    return NextResponse.redirect(new URL(dashboardPathForRole(role), request.url))
   }
 
-  // Staff-only routes
   if (path.startsWith('/staff') && role !== 'staff' && role !== 'admin') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (isApi) {
+      return json('Forbidden', 403)
+    }
+    return NextResponse.redirect(new URL(dashboardPathForRole(role), request.url))
   }
 
-  // Student-only routes
   if (path.startsWith('/student') && role !== 'student' && role !== 'admin') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (isApi) {
+      return json('Forbidden', 403)
+    }
+    return NextResponse.redirect(new URL(dashboardPathForRole(role), request.url))
   }
 
-  // Accounts-only routes
   if (path.startsWith('/accounts') && role !== 'accounts' && role !== 'admin') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (isApi) {
+      return json('Forbidden', 403)
+    }
+    return NextResponse.redirect(new URL(dashboardPathForRole(role), request.url))
   }
 
   return NextResponse.next()
 }
 
+/** Run on all routes except NextAuth, static assets, and files with extensions */
 export const config = {
-  matcher: [
-    '/',
-    '/dashboard/:path*',
-    '/admin/:path*',
-    '/staff/:path*',
-    '/student/:path*',
-    '/accounts/:path*',
-    '/api/users/:path*',
-    '/api/classes/:path*',
-    '/api/timetable/:path*',
-    '/api/exams/:path*',
-    '/api/attendance/:path*',
-    '/api/fees/:path*',
-    '/api/notifications/:path*',
-    '/api/audit/:path*',
-    '/api/coverage',
-    '/api/coverage/:path*',
-    '/api/reports',
-    '/api/reports/:path*',
-  ],
+  matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 }
