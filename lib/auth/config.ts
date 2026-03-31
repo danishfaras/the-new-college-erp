@@ -2,6 +2,7 @@ import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { verifyPassword } from '@/lib/utils/password'
 import { SessionUser, UserRole } from '@/types'
+import { getAuthSecret } from '@/lib/auth/env'
 
 // Lazy load Prisma to avoid Edge runtime issues
 const getPrisma = async () => {
@@ -79,5 +80,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: '/login',
     error: '/login',
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: getAuthSecret(),
 })

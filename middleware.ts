@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { getAuthSecret, sessionUsesSecureCookie } from '@/lib/auth/env'
 
 function dashboardPathForRole(role: string | undefined): string {
   switch (role) {
@@ -24,14 +25,23 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
   const isApi = path.startsWith('/api/')
 
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  })
-
   if (path === '/login' || path === '/') {
     return NextResponse.next()
   }
+
+  const secret = getAuthSecret()
+  if (!secret) {
+    if (isApi) {
+      return json('Server misconfiguration: set AUTH_SECRET or NEXTAUTH_SECRET', 500)
+    }
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  const token = await getToken({
+    req: request,
+    secret,
+    secureCookie: sessionUsesSecureCookie(request),
+  })
 
   if (!token) {
     if (isApi) {
